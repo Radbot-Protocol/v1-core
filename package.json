@@ -44,12 +44,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": [
-    "artifacts",
-    "cache",
-    "dist",
-    "types"
-  ],
   "engines": {
     "node": ">=22.8.0"
   },
