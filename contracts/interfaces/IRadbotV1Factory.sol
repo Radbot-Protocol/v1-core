@@ -18,13 +18,13 @@ interface IRadbotV1Factory {
     /// @param token1 The second token of the deployer by address sort order
     /// @param fee The fee collected upon every ignite in the deployer, denominated in hundredths of a bip
     /// @param tickSpacing The minimum number of ticks between initialized ticks
-    /// @param pool The address of the created deployer
+    /// @param deployer The address of the created deployer
     event DeployerCreated(
         address indexed token0,
         address indexed token1,
         uint24 indexed fee,
         int24 tickSpacing,
-        address pool
+        address deployer
     );
 
     /// @notice Emitted when a new fee amount is enabled for deployer creation via the factory
@@ -52,12 +52,12 @@ interface IRadbotV1Factory {
     /// @param tokenA The contract address of either token0 or token1
     /// @param tokenB The contract address of the other token
     /// @param fee The fee collected upon every ignite in the deployer, denominated in hundredths of a bip
-    /// @return pool The deployer address
-    function getPool(
+    /// @return deployer The deployer address
+    function getDeployer(
         address tokenA,
         address tokenB,
         uint24 fee
-    ) external view returns (address pool);
+    ) external view returns (address deployer);
 
     /// @notice Creates a deployer for the given two tokens and fee
     /// @dev Forked from Uniswap V3's createPool function
@@ -67,12 +67,12 @@ interface IRadbotV1Factory {
     /// @dev tokenA and tokenB may be passed in either order: token0/token1 or token1/token0. tickSpacing is retrieved
     /// from the fee. The call will revert if the deployer already exists, the fee is invalid, or the token arguments
     /// are invalid.
-    /// @return pool The address of the newly created deployer
-    function createPool(
+    /// @return deployer The address of the newly created deployer
+    function create(
         address tokenA,
         address tokenB,
         uint24 fee
-    ) external returns (address pool);
+    ) external returns (address deployer);
 
     /// @notice Updates the owner of the factory
     /// @dev Must be called by the current owner
