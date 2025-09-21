@@ -1,27 +1,59 @@
 {
   "name": "v1-core",
   "version": "1.0.0",
+  "license": "BUSL-1.1",
   "type": "module",
   "devDependencies": {
-    "@nomicfoundation/hardhat-ethers": "^4.0.1",
-    "@nomicfoundation/hardhat-ethers-chai-matchers": "^3.0.0",
-    "@nomicfoundation/hardhat-ignition": "^3.0.0",
-    "@nomicfoundation/hardhat-ignition-ethers": "^3.0.3",
-    "@nomicfoundation/hardhat-keystore": "^3.0.1",
-    "@nomicfoundation/hardhat-mocha": "^3.0.2",
-    "@nomicfoundation/hardhat-network-helpers": "^3.0.0",
-    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.0",
-    "@nomicfoundation/hardhat-typechain": "^3.0.0",
-    "@nomicfoundation/hardhat-verify": "^3.0.2",
-    "@types/chai": "^4.2.0",
-    "@types/chai-as-promised": "^8.0.1",
+    "@nomicfoundation/hardhat-ethers": "4.0.1",
+    "@nomicfoundation/hardhat-ethers-chai-matchers": "3.0.0",
+    "@nomicfoundation/hardhat-ignition": "3.0.0",
+    "@nomicfoundation/hardhat-ignition-ethers": "3.0.3",
+    "@nomicfoundation/hardhat-keystore": "3.0.1",
+    "@nomicfoundation/hardhat-mocha": "3.0.2",
+    "@nomicfoundation/hardhat-network-helpers": "3.0.0",
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "3.0.0",
+    "@nomicfoundation/hardhat-typechain": "3.0.0",
+    "@nomicfoundation/hardhat-verify": "3.0.2",
+    "@solidstate/hardhat-contract-sizer": "3.0.0",
+    "@types/chai": "4.2.0",
+    "@types/chai-as-promised": "8.0.1",
     "@types/mocha": "10.0.10",
-    "@types/node": "^22.8.5",
-    "chai": "^5.1.2",
-    "ethers": "^6.14.0",
+    "@types/node": "22.8.5",
+    "chai": "5.1.2",
+    "ethers": "6.14.0",
     "forge-std": "foundry-rs/forge-std#v1.9.4",
-    "hardhat": "^3.0.6",
-    "mocha": "^11.0.0",
+    "hardhat": "3.0.6",
+    "husky": "^9.1.7",
+    "mocha": "11.0.0",
     "typescript": "~5.8.0"
+  },
+  "author": "Radbot",
+  "keywords": [
+    "radbot",
+    "v1",
+    "core"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/radbot-labs/v1-core"
+  },
+  "bugs": {
+    "url": "https://github.com/radbot-labs/v1-core/issues"
+  },
+  "homepage": "https://github.com/radbot-labs/v1-core",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "artifacts",
+    "cache",
+    "dist",
+    "types"
+  ],
+  "engines": {
+    "node": ">=22.8.0"
+  },
+  "scripts": {
+    "prepare": "husky"
   }
 }
