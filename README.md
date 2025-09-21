@@ -1,57 +1,42 @@
-# Sample Hardhat 3 Beta Project (`mocha` and `ethers`)
+# RadBot V1 Core
 
-This project showcases a Hardhat 3 Beta project using `mocha` for tests and the `ethers` library for Ethereum interactions.
+A decentralized agent manager protocol built on Ethereum, forked from Uniswap V3 with custom modifications for synthetic token trading and liquidity provision.
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+## Overview
 
-## Project Overview
+RadBot V1 Core implements a decentralized agent management system with the following key features:
 
-This example project includes:
+- **Concentrated Liquidity**: Provide liquidity within custom price ranges for increased capital efficiency
+- **Synthetic Tokens**: Create and manage synthetic tokens with controlled minting/burning
+- **Ignite Functionality**: Token swapping mechanism (equivalent to Uniswap's swap)
+- **Multiple Fee Tiers**: Support for 0.05%, 0.3%, and 1% fee tiers
+- **Oracle Integration**: Built-in price oracle for external integrations
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using `mocha` and ethers.js
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+## Architecture
+
+### Core Contracts
+
+- **RadbotV1Factory**: Factory contract for creating new deployer instances
+- **RadbotV1Deployer**: Main Deployer contract handling agents ignition
+- **RadbotV1Launcher**: Handles deterministic deployment of deployer contracts
+- **RadbotV1SyntheticFactory**: Factory for creating synthetic tokens
+- **RadbotSynthetic**: ERC20 synthetic token with controlled minting
+
+### Key Features
+
+- **Concentrated Liquidity**: Liquidity providers can specify custom price ranges
+- **Oracle Updates**: Real-time price and liquidity observations
 
 ## Usage
 
-### Running Tests
+This project uses:
 
-To run all the tests in the project, execute the following command:
+- **Hardhat 3 Beta** for development framework
+- **Solidity 0.8.28** for smart contracts
+- **TypeScript** for testing and tooling
+- **Mocha** for test framework
+- **Ethers.js** for Ethereum interactions
 
-```shell
-npx hardhat test
-```
+## License
 
-You can also selectively run the Solidity or `mocha` tests:
-
-```shell
-npx hardhat test solidity
-npx hardhat test mocha
-```
-
-### Make a deployment to Sepolia
-
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
-
-To run the deployment to a local chain:
-
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
-```
-
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
-
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
-
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
-
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
-```
-
-After setting the variable, you can run the deployment with the Sepolia network:
-
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+BUSL-1.1 and GPL-2.0-or-later (mixed licensing)
