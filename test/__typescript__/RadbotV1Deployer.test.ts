@@ -7,9 +7,11 @@ const { ethers } = await network.connect();
 describe("RadbotV1Deployer", function () {
   let factory: any;
   let syntheticFactory: any;
+  let reservoirFactory: any;
   let stringHelper: any;
   let deployer: any;
   let mockCallback: any;
+  let reservoir: any;
   let owner: any;
   let user1: any;
   let user2: any;
@@ -63,6 +65,24 @@ describe("RadbotV1Deployer", function () {
     const Factory = await ethers.getContractFactory("RadbotV1Factory");
     factory = await Factory.deploy();
     await factory.waitForDeployment();
+
+    // Deploy reservoir factory
+    const ReservoirFactory = await ethers.getContractFactory(
+      "RadbotV1ReservoirFactory"
+    );
+    reservoirFactory = await ReservoirFactory.deploy();
+    await reservoirFactory.waitForDeployment();
+
+    // Create reservoir using the reservoir factory
+    await reservoirFactory.createReservoir(
+      await tokenA.getAddress(),
+      await tokenB.getAddress()
+    );
+    const reservoirAddress = await reservoirFactory.reservoir();
+    reservoir = await ethers.getContractAt(
+      "RadbotV1Reservoir",
+      reservoirAddress
+    );
 
     // Create a deployer using the factory
     await factory.create(
@@ -122,14 +142,23 @@ describe("RadbotV1Deployer", function () {
       const slot0 = await deployer.slot0();
       expect(slot0.unlocked).to.be.false; // Starts locked until initialized
     });
+
+    it("Should have correct reservoir address after initialization", async function () {
+      const sqrtPriceX96 = "79228162514264337593543950336";
+      await deployer.initialize(sqrtPriceX96, await reservoir.getAddress());
+
+      expect(await deployer.reservoir()).to.equal(await reservoir.getAddress());
+    });
   });
 
   describe("Initialization", function () {
-    it("Should initialize successfully with valid sqrtPriceX96", async function () {
+    it("Should initialize successfully with valid sqrtPriceX96 and reservoir", async function () {
       // Calculate a valid sqrtPriceX96 value (1:1 ratio)
       const sqrtPriceX96 = "79228162514264337593543950336"; // sqrt(1) * 2^96
 
-      await expect(deployer.initialize(sqrtPriceX96))
+      await expect(
+        deployer.initialize(sqrtPriceX96, await reservoir.getAddress())
+      )
         .to.emit(deployer, "Initialize")
         .withArgs(sqrtPriceX96, 0); // tick should be 0 for 1:1 ratio
 
@@ -137,28 +166,33 @@ describe("RadbotV1Deployer", function () {
       expect(slot0.sqrtPriceX96).to.equal(sqrtPriceX96);
       expect(slot0.tick).to.equal(0);
       expect(slot0.unlocked).to.be.true;
+      expect(await deployer.reservoir()).to.equal(await reservoir.getAddress());
     });
 
     it("Should revert if already initialized", async function () {
       const sqrtPriceX96 = "79228162514264337593543950336";
 
       // Initialize once
-      await deployer.initialize(sqrtPriceX96);
+      await deployer.initialize(sqrtPriceX96, await reservoir.getAddress());
 
       // Try to initialize again
-      await expect(deployer.initialize(sqrtPriceX96)).to.be.revertedWith("AI");
+      await expect(
+        deployer.initialize(sqrtPriceX96, await reservoir.getAddress())
+      ).to.be.revertedWith("AI");
     });
 
     it("Should revert if sqrtPriceX96 is zero", async function () {
-      await expect(deployer.initialize(0)).to.be.revertedWith("R");
+      await expect(
+        deployer.initialize(0, await reservoir.getAddress())
+      ).to.be.revertedWith("R");
     });
 
     it("Should revert if sqrtPriceX96 is too high", async function () {
       const tooHighSqrtPrice =
         "1461446703485210103287273052203988822378723970342"; // Max uint160
-      await expect(deployer.initialize(tooHighSqrtPrice)).to.be.revertedWith(
-        "R"
-      );
+      await expect(
+        deployer.initialize(tooHighSqrtPrice, await reservoir.getAddress())
+      ).to.be.revertedWith("R");
     });
   });
 
@@ -166,7 +200,7 @@ describe("RadbotV1Deployer", function () {
     beforeEach(async function () {
       // Initialize the deployer
       const sqrtPriceX96 = "79228162514264337593543950336";
-      await deployer.initialize(sqrtPriceX96);
+      await deployer.initialize(sqrtPriceX96, await reservoir.getAddress());
     });
 
     it("Should allow minting liquidity", async function () {
@@ -190,7 +224,7 @@ describe("RadbotV1Deployer", function () {
   describe("Oracle Functions", function () {
     beforeEach(async function () {
       const sqrtPriceX96 = "79228162514264337593543950336";
-      await deployer.initialize(sqrtPriceX96);
+      await deployer.initialize(sqrtPriceX96, await reservoir.getAddress());
     });
 
     it("Should observe price correctly", async function () {
@@ -241,7 +275,7 @@ describe("RadbotV1Deployer", function () {
   describe("Access Control", function () {
     it("Should only allow factory owner to set fee protocol", async function () {
       const sqrtPriceX96 = "79228162514264337593543950336";
-      await deployer.initialize(sqrtPriceX96);
+      await deployer.initialize(sqrtPriceX96, await reservoir.getAddress());
 
       // Get the factory owner (should be the deployer of the factory)
       const factoryOwner = owner; // Assuming owner deployed the factory
@@ -261,7 +295,7 @@ describe("RadbotV1Deployer", function () {
   describe("Edge Cases", function () {
     beforeEach(async function () {
       const sqrtPriceX96 = "79228162514264337593543950336";
-      await deployer.initialize(sqrtPriceX96);
+      await deployer.initialize(sqrtPriceX96, await reservoir.getAddress());
     });
 
     it("Should handle zero amount minting", async function () {
@@ -314,7 +348,10 @@ describe("RadbotV1Deployer", function () {
 
   describe("Gas Optimization", function () {
     it("Should have reasonable gas costs for initialization", async function () {
-      const tx = await deployer.initialize("79228162514264337593543950336");
+      const tx = await deployer.initialize(
+        "79228162514264337593543950336",
+        await reservoir.getAddress()
+      );
       const receipt = await tx.wait();
 
       expect(receipt?.gasUsed).to.be.lessThan(200000); // 200K gas limit
@@ -322,7 +359,10 @@ describe("RadbotV1Deployer", function () {
 
     it("Should have reasonable gas costs for minting", async function () {
       // Initialize the deployer first
-      await deployer.initialize("79228162514264337593543950336");
+      await deployer.initialize(
+        "79228162514264337593543950336",
+        await reservoir.getAddress()
+      );
 
       const tx = await mockCallback.mintLiquidity(
         await mockCallback.getAddress(),

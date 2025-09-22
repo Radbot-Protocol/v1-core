@@ -11,7 +11,8 @@ interface IRadbotV1DeployerActions {
     /// @dev Price is represented as a sqrt(amountToken1/amountToken0) Q64.96 value
     /// @dev Forked from Uniswap V3's initialize function
     /// @param sqrtPriceX96 the initial sqrt price of the deployer as a Q64.96
-    function initialize(uint160 sqrtPriceX96) external;
+    /// @param reservoir the address of the reservoir
+    function initialize(uint160 sqrtPriceX96, address reservoir) external;
 
     /// @notice Adds liquidity for the given recipient/tickLower/tickUpper position
     /// @dev The caller of this method receives a callback in the form of IRadbotV1MintCallback#radbotV1MintCallback

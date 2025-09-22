@@ -56,6 +56,9 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
     /// @inheritdoc IRadbotV1DeployerImmutables
     uint128 public immutable override maxLiquidityPerTick;
 
+    /// @inheritdoc IRadbotV1DeployerImmutables
+    address public reservoir; // Will be set in initialize
+
     struct Slot0 {
         // the current price
         uint160 sqrtPriceX96;
@@ -306,7 +309,10 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
 
     /// @inheritdoc IRadbotV1DeployerActions
     /// @dev not locked because it initializes unlocked
-    function initialize(uint160 sqrtPriceX96) external override {
+    function initialize(
+        uint160 sqrtPriceX96,
+        address reservoir_
+    ) external override {
         require(slot0.sqrtPriceX96 == 0, "AI");
 
         int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
@@ -324,6 +330,8 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
             feeProtocol: 0,
             unlocked: true
         });
+
+        reservoir = reservoir_;
 
         emit Initialize(sqrtPriceX96, tick);
     }
