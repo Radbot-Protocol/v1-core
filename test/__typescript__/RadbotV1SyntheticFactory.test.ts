@@ -45,11 +45,12 @@ describe("RadbotV1SyntheticFactory", function () {
 
   describe("createSynthetic", function () {
     it("Should create a synthetic token with 18 decimals", async function () {
-      const tx = await factory.createSynthetic(
-        stringToBytes32("Test Token"),
-        stringToBytes16("TEST"),
-        18
-      );
+      const token = {
+        name: stringToBytes32("Test Token"),
+        symbol: stringToBytes16("TEST"),
+        decimals: 18,
+      };
+      const tx = await factory.createSynthetic(token);
 
       const receipt = await tx.wait();
       const syntheticAddress = await factory.getSynthetic(
@@ -64,11 +65,12 @@ describe("RadbotV1SyntheticFactory", function () {
     });
 
     it("Should create a synthetic token with 6 decimals", async function () {
-      const tx = await factory.createSynthetic(
-        stringToBytes32("USDC Token"),
-        stringToBytes16("USDC"),
-        6
-      );
+      const token = {
+        name: stringToBytes32("USDC Token"),
+        symbol: stringToBytes16("USDC"),
+        decimals: 6,
+      };
+      const tx = await factory.createSynthetic(token);
 
       const syntheticAddress = await factory.getSynthetic(
         stringToBytes16("USDC"),
@@ -82,17 +84,19 @@ describe("RadbotV1SyntheticFactory", function () {
     });
 
     it("Should allow different symbols with same decimals", async function () {
-      await factory.createSynthetic(
-        stringToBytes32("Token One"),
-        stringToBytes16("TOK1"),
-        18
-      );
+      const token1 = {
+        name: stringToBytes32("Token One"),
+        symbol: stringToBytes16("TOK1"),
+        decimals: 18,
+      };
+      await factory.createSynthetic(token1);
 
-      await factory.createSynthetic(
-        stringToBytes32("Token Two"),
-        stringToBytes16("TOK2"),
-        18
-      );
+      const token2 = {
+        name: stringToBytes32("Token Two"),
+        symbol: stringToBytes16("TOK2"),
+        decimals: 18,
+      };
+      await factory.createSynthetic(token2);
 
       const token1Address = await factory.getSynthetic(
         stringToBytes16("TOK1"),
@@ -109,17 +113,19 @@ describe("RadbotV1SyntheticFactory", function () {
     });
 
     it("Should allow same symbol with different decimals", async function () {
-      await factory.createSynthetic(
-        stringToBytes32("Token 18"),
-        stringToBytes16("TOK"),
-        18
-      );
+      const token18 = {
+        name: stringToBytes32("Token 18"),
+        symbol: stringToBytes16("TOK"),
+        decimals: 18,
+      };
+      await factory.createSynthetic(token18);
 
-      await factory.createSynthetic(
-        stringToBytes32("Token 6"),
-        stringToBytes16("TOK"),
-        6
-      );
+      const token6 = {
+        name: stringToBytes32("Token 6"),
+        symbol: stringToBytes16("TOK"),
+        decimals: 6,
+      };
+      await factory.createSynthetic(token6);
 
       const token18Address = await factory.getSynthetic(
         stringToBytes16("TOK"),
@@ -136,43 +142,39 @@ describe("RadbotV1SyntheticFactory", function () {
     });
 
     it("Should revert when creating token with invalid decimals (not 6 or 18)", async function () {
-      await expect(
-        factory.createSynthetic(
-          stringToBytes32("Invalid Token"),
-          stringToBytes16("INV"),
-          8
-        )
-      ).to.be.revertedWith("CS");
+      const token = {
+        name: stringToBytes32("Invalid Token"),
+        symbol: stringToBytes16("INV"),
+        decimals: 8,
+      };
+      await expect(factory.createSynthetic(token)).to.be.revertedWith("CS");
     });
 
     it("Should revert when creating token with invalid decimals (0)", async function () {
-      await expect(
-        factory.createSynthetic(
-          stringToBytes32("Invalid Token"),
-          stringToBytes16("INV"),
-          0
-        )
-      ).to.be.revertedWith("CS");
+      const token = {
+        name: stringToBytes32("Invalid Token"),
+        symbol: stringToBytes16("INV"),
+        decimals: 0,
+      };
+      await expect(factory.createSynthetic(token)).to.be.revertedWith("CS");
     });
 
     it("Should revert when creating token with invalid decimals (9)", async function () {
-      await expect(
-        factory.createSynthetic(
-          stringToBytes32("Invalid Token"),
-          stringToBytes16("INV"),
-          9
-        )
-      ).to.be.revertedWith("CS");
+      const token = {
+        name: stringToBytes32("Invalid Token"),
+        symbol: stringToBytes16("INV"),
+        decimals: 9,
+      };
+      await expect(factory.createSynthetic(token)).to.be.revertedWith("CS");
     });
 
     it("Should allow any user to create synthetic tokens", async function () {
-      const tx = await factory
-        .connect(user1)
-        .createSynthetic(
-          stringToBytes32("User Token"),
-          stringToBytes16("USER"),
-          18
-        );
+      const token = {
+        name: stringToBytes32("User Token"),
+        symbol: stringToBytes16("USER"),
+        decimals: 18,
+      };
+      const tx = await factory.connect(user1).createSynthetic(token);
 
       const syntheticAddress = await factory.getSynthetic(
         stringToBytes16("USER"),
@@ -182,23 +184,26 @@ describe("RadbotV1SyntheticFactory", function () {
     });
 
     it("Should emit SyntheticCreated event", async function () {
-      await expect(
-        factory.createSynthetic(
-          stringToBytes32("Event Token"),
-          stringToBytes16("EVENT"),
-          18
-        )
-      ).to.emit(factory, "SyntheticCreated");
+      const token = {
+        name: stringToBytes32("Event Token"),
+        symbol: stringToBytes16("EVENT"),
+        decimals: 18,
+      };
+      await expect(factory.createSynthetic(token)).to.emit(
+        factory,
+        "SyntheticCreated"
+      );
     });
   });
 
   describe("getSynthetic", function () {
     beforeEach(async function () {
-      await factory.createSynthetic(
-        stringToBytes32("Test Token"),
-        stringToBytes16("TEST"),
-        18
-      );
+      const token = {
+        name: stringToBytes32("Test Token"),
+        symbol: stringToBytes16("TEST"),
+        decimals: 18,
+      };
+      await factory.createSynthetic(token);
     });
 
     it("Should return correct address for existing synthetic", async function () {
@@ -224,32 +229,31 @@ describe("RadbotV1SyntheticFactory", function () {
 
   describe("Edge Cases", function () {
     it("Should revert when creating token with empty name", async function () {
-      await expect(
-        factory.createSynthetic(
-          stringToBytes32(""),
-          stringToBytes16("SYMBOL"),
-          18
-        )
-      ).to.be.revertedWith("CN");
+      const token = {
+        name: stringToBytes32(""),
+        symbol: stringToBytes16("SYMBOL"),
+        decimals: 18,
+      };
+      await expect(factory.createSynthetic(token)).to.be.revertedWith("CN");
     });
 
     it("Should revert when creating token with empty symbol", async function () {
-      await expect(
-        factory.createSynthetic(
-          stringToBytes32("Token Name"),
-          stringToBytes16(""),
-          18
-        )
-      ).to.be.revertedWith("CSY");
+      const token = {
+        name: stringToBytes32("Token Name"),
+        symbol: stringToBytes16(""),
+        decimals: 18,
+      };
+      await expect(factory.createSynthetic(token)).to.be.revertedWith("CSY");
     });
 
     it("Should handle maximum length symbols", async function () {
       const maxSymbol = "1234567890123456"; // 16 characters
-      const tx = await factory.createSynthetic(
-        stringToBytes32("Max Symbol Token"),
-        stringToBytes16(maxSymbol),
-        18
-      );
+      const token = {
+        name: stringToBytes32("Max Symbol Token"),
+        symbol: stringToBytes16(maxSymbol),
+        decimals: 18,
+      };
+      const tx = await factory.createSynthetic(token);
 
       const syntheticAddress = await factory.getSynthetic(
         stringToBytes16(maxSymbol),
@@ -261,11 +265,12 @@ describe("RadbotV1SyntheticFactory", function () {
 
   describe("Integration with RadbotSynthetic", function () {
     it("Should create a valid RadbotSynthetic contract", async function () {
-      const tx = await factory.createSynthetic(
-        stringToBytes32("Integration Test"),
-        stringToBytes16("INT"),
-        18
-      );
+      const token = {
+        name: stringToBytes32("Integration Test"),
+        symbol: stringToBytes16("INT"),
+        decimals: 18,
+      };
+      const tx = await factory.createSynthetic(token);
 
       const syntheticAddress = await factory.getSynthetic(
         stringToBytes16("INT"),

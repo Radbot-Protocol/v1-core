@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "./interfaces/IRadbotV1SyntheticFactory.sol";
+import "./interfaces/synthetic/IRadbotV1SyntheticFactory.sol";
 import "./libraries/StringHelper.sol";
 import "./RadbotSynthetic.sol";
 import "./NoDelegateCall.sol";
@@ -33,31 +33,38 @@ contract RadbotV1SyntheticFactory is IRadbotV1SyntheticFactory, NoDelegateCall {
     /// @dev Only allows creation of tokens with 6 or 18 decimal places
     /// @dev The caller becomes the owner of the created synthetic token
     /// @dev Uses StringHelper library to convert bytes32/bytes16 to strings
-    /// @param name The name of the synthetic token (as bytes32)
-    /// @param symbol The symbol of the synthetic token (as bytes16)
-    /// @param decimals The number of decimal places (must be 6 or 18)
+    /// @param token The synthetic token
     /// @return synthetic The address of the newly created synthetic token
     function createSynthetic(
-        bytes32 name,
-        bytes16 symbol,
-        uint8 decimals
+        SyntheticToken calldata token
     ) external override noDelegateCall returns (address synthetic) {
-        require(decimals == 18 || decimals == 6, "CS");
-        require(name != bytes32(0), "CN"); // Check name is not empty
-        require(symbol != bytes16(0), "CSY"); // Check symbol is not empty
+        require(token.decimals == 18 || token.decimals == 6, "CS");
+        require(token.name != bytes32(0), "CN"); // Check name is not empty
+        require(token.symbol != bytes16(0), "CSY"); // Check symbol is not empty
+
+        // Check if synthetic already exists
+        synthetic = getSynthetic[token.symbol][token.decimals];
+        if (synthetic != address(0)) {
+            return synthetic; // Return existing synthetic
+        }
 
         synthetic = address(
             new RadbotSynthetic(
-                msg.sender,
-                name.bytes32ToString(), // Lib checks for length
-                symbol.bytes16ToString() // Lib checks for length
+                owner,
+                token.name.bytes32ToString(), // Lib checks for length
+                token.symbol.bytes16ToString() // Lib checks for length
             )
         );
 
         // Store the synthetic address in the mapping
-        getSynthetic[symbol][decimals] = synthetic;
+        getSynthetic[token.symbol][token.decimals] = synthetic;
 
         // Emit the SyntheticCreated event
-        emit SyntheticCreated(synthetic, name, symbol, decimals);
+        emit SyntheticCreated(
+            synthetic,
+            token.name,
+            token.symbol,
+            token.decimals
+        );
     }
 }

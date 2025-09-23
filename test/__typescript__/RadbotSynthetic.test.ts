@@ -33,11 +33,12 @@ describe("RadbotSynthetic", function () {
     await factory.waitForDeployment();
 
     // Create a synthetic token for testing
-    const tx = await factory.createSynthetic(
-      stringToBytes32("Test Token"),
-      stringToBytes16("TEST"),
-      18
-    );
+    const token = {
+      name: stringToBytes32("Test Token"),
+      symbol: stringToBytes16("TEST"),
+      decimals: 18,
+    };
+    const tx = await factory.createSynthetic(token);
     const syntheticAddress = await factory.getSynthetic(
       stringToBytes16("TEST"),
       18
@@ -152,11 +153,12 @@ describe("RadbotSynthetic", function () {
 
     it("Should revert if called before initialization", async function () {
       // Create a new synthetic token without initializing
-      const tx = await factory.createSynthetic(
-        stringToBytes32("Uninitialized Token"),
-        stringToBytes16("UNIT"),
-        18
-      );
+      const token = {
+        name: stringToBytes32("Uninitialized Token"),
+        symbol: stringToBytes16("UNIT"),
+        decimals: 18,
+      };
+      const tx = await factory.createSynthetic(token);
       const syntheticAddress = await factory.getSynthetic(
         stringToBytes16("UNIT"),
         18
@@ -326,11 +328,12 @@ describe("RadbotSynthetic", function () {
   describe("Integration with Factory", function () {
     it("Should create multiple synthetic tokens with different parameters", async function () {
       // Create token with 6 decimals
-      const tx6 = await factory.createSynthetic(
-        stringToBytes32("USDC Token"),
-        stringToBytes16("USDC"),
-        6
-      );
+      const token6 = {
+        name: stringToBytes32("USDC Token"),
+        symbol: stringToBytes16("USDC"),
+        decimals: 6,
+      };
+      const tx6 = await factory.createSynthetic(token6);
       const synthetic6Address = await factory.getSynthetic(
         stringToBytes16("USDC"),
         6
@@ -345,11 +348,12 @@ describe("RadbotSynthetic", function () {
       // Note: Symbol might be empty due to StringHelper library issues
 
       // Create token with 18 decimals
-      const tx18 = await factory.createSynthetic(
-        stringToBytes32("WETH Token"),
-        stringToBytes16("WETH"),
-        18
-      );
+      const token18 = {
+        name: stringToBytes32("WETH Token"),
+        symbol: stringToBytes16("WETH"),
+        decimals: 18,
+      };
+      const tx18 = await factory.createSynthetic(token18);
       const synthetic18Address = await factory.getSynthetic(
         stringToBytes16("WETH"),
         18
@@ -366,11 +370,12 @@ describe("RadbotSynthetic", function () {
 
     it("Should allow independent operation of multiple synthetic tokens", async function () {
       // Create second synthetic token
-      const tx = await factory.createSynthetic(
-        stringToBytes32("Second Token"),
-        stringToBytes16("SECOND"),
-        18
-      );
+      const token2 = {
+        name: stringToBytes32("Second Token"),
+        symbol: stringToBytes16("SECOND"),
+        decimals: 18,
+      };
+      const tx = await factory.createSynthetic(token2);
       const secondAddress = await factory.getSynthetic(
         stringToBytes16("SECOND"),
         18

@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import "./synthetic/ISyntheticToken.sol";
+
 /// @title The interface for the Radbot V1 Factory
 /// @notice The Radbot V1 Factory facilitates creation of Radbot V1 deployers and control over the protocol fees
 /// @dev Forked from Uniswap V3's IUniswapV3Factory interface
 /// @author Uniswap Labs (original implementation)
 /// @author RadBot (modifications and adaptations)
-interface IRadbotV1Factory {
+interface IRadbotV1Factory is ISyntheticToken {
     /// @notice Emitted when the owner of the factory is changed
     /// @param oldOwner The owner before the owner was changed
     /// @param newOwner The owner after the owner was changed
@@ -24,7 +26,10 @@ interface IRadbotV1Factory {
         address indexed token1,
         uint24 indexed fee,
         int24 tickSpacing,
-        address deployer
+        address deployer,
+        address reservoir,
+        address synthetic0,
+        address synthetic1
     );
 
     /// @notice Emitted when a new fee amount is enabled for deployer creation via the factory
@@ -38,6 +43,10 @@ interface IRadbotV1Factory {
     /// @dev Forked from Uniswap V3's owner function
     /// @return The address of the factory owner
     function owner() external view returns (address);
+
+    function syntheticFactory() external view returns (address);
+
+    function reservoirFactory() external view returns (address);
 
     /// @notice Returns the tick spacing for a given fee amount, if enabled, or 0 if not enabled
     /// @dev A fee amount can never be removed, so this value should be hard coded or cached in the calling context
@@ -59,31 +68,33 @@ interface IRadbotV1Factory {
         uint24 fee
     ) external view returns (address deployer);
 
-    /// @notice Creates a deployer for the given two tokens and fee
-    /// @dev Forked from Uniswap V3's createPool function
-    /// @param tokenA One of the two tokens in the desired deployer
-    /// @param tokenB The other of the two tokens in the desired deployer
-    /// @param fee The desired fee for the deployer
-    /// @dev tokenA and tokenB may be passed in either order: token0/token1 or token1/token0. tickSpacing is retrieved
-    /// from the fee. The call will revert if the deployer already exists, the fee is invalid, or the token arguments
-    /// are invalid.
-    /// @return deployer The address of the newly created deployer
+    // / @notice Creates a deployer for the given two tokens and fee
+    // / @dev Forked from Uniswap V3's createPool function
+    // / @param tokenA One of the two tokens in the desired deployer
+    // / @param tokenB The other of the two tokens in the desired deployer
+    // / @param fee The desired fee for the deployer
+    // / @dev tokenA and tokenB may be passed in either order: token0/token1 or token1/token0. tickSpacing is retrieved
+    // / from the fee. The call will revert if the deployer already exists, the fee is invalid, or the token arguments
+    // / are invalid.
+    // / @return deployer The address of the newly created deployer
     function create(
-        address tokenA,
-        address tokenB,
-        uint24 fee
+        SyntheticToken calldata tokenA,
+        SyntheticToken calldata tokenB,
+        uint24 fee,
+        address reserve0,
+        address reserve1
     ) external returns (address deployer);
 
-    /// @notice Updates the owner of the factory
-    /// @dev Must be called by the current owner
-    /// @dev Forked from Uniswap V3's setOwner function
-    /// @param _owner The new owner of the factory
-    function setOwner(address _owner) external;
+    // /// @notice Updates the owner of the factory
+    // /// @dev Must be called by the current owner
+    // /// @dev Forked from Uniswap V3's setOwner function
+    // /// @param _owner The new owner of the factory
+    // function setOwner(address _owner) external;
 
-    /// @notice Enables a fee amount with the given tickSpacing
-    /// @dev Fee amounts may never be removed once enabled
-    /// @dev Forked from Uniswap V3's enableFeeAmount function
-    /// @param fee The fee amount to enable, denominated in hundredths of a bip (i.e. 1e-6)
-    /// @param tickSpacing The spacing between ticks to be enforced for all deployers created with the given fee amount
-    function enableFeeAmount(uint24 fee, int24 tickSpacing) external;
+    // /// @notice Enables a fee amount with the given tickSpacing
+    // /// @dev Fee amounts may never be removed once enabled
+    // /// @dev Forked from Uniswap V3's enableFeeAmount function
+    // /// @param fee The fee amount to enable, denominated in hundredths of a bip (i.e. 1e-6)
+    // /// @param tickSpacing The spacing between ticks to be enforced for all deployers created with the given fee amount
+    // function enableFeeAmount(uint24 fee, int24 tickSpacing) external;
 }

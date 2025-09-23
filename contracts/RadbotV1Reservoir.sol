@@ -13,8 +13,22 @@ contract RadbotV1Reservoir is IRadbotReservoir, ReserveLocked {
     bytes32 public constant WITHDRAW_KEY0 = keccak256("WITHDRAW0");
     bytes32 public constant WITHDRAW_KEY1 = keccak256("WITHDRAW1");
 
+    uint8 private _lock = 0;
+
+    address public override deployer;
+
     modifier onlyFactoryOwner() {
         require(msg.sender == IRadbotV1ReservoirFactory(factory).owner(), "O");
+        _;
+    }
+
+    modifier lock() {
+        require(_lock == 2, "L");
+        _;
+    }
+
+    modifier onlyDeployer() {
+        require(msg.sender == deployer, "D");
         _;
     }
 
@@ -35,11 +49,17 @@ contract RadbotV1Reservoir is IRadbotReservoir, ReserveLocked {
         ) = IRadbotV1ReservoirFactory(msg.sender).parameters();
     }
 
-    function balance0() external view override returns (uint256) {
+    function initialize(address deployer_) external onlyFactoryOwner {
+        require(_lock == 1, "L");
+        _lock = 2;
+        deployer = deployer_;
+    }
+
+    function balance0() public view override returns (uint256) {
         return IERC20(token0).balanceOf(address(this));
     }
 
-    function balance1() external view override returns (uint256) {
+    function balance1() public view override returns (uint256) {
         return IERC20(token1).balanceOf(address(this));
     }
 
@@ -91,5 +111,30 @@ contract RadbotV1Reservoir is IRadbotReservoir, ReserveLocked {
         TransferHelper.safeTransfer(token1, to, amount);
 
         require(IERC20(token1).balanceOf(to) > balanceBefore, "TF");
+    }
+
+    /// @inheritdoc IRadbotReservoirActions
+    function sendReserve(
+        address to,
+        uint256 amount
+    ) external override onlyDeployer lock {
+        require(to != address(0), "TO");
+        require(amount > 0, "IA");
+
+        uint256 balance0Before = balance0();
+        uint256 balance1Before = balance1();
+
+        address token;
+
+        // Try token0 first, fallback to token1
+        if (amount <= balance0Before) {
+            token = token0;
+        } else if (amount <= balance1Before) {
+            token = token1;
+        } else {
+            revert("SR"); // Send Reserve error - insufficient balance in both tokens
+        }
+
+        TransferHelper.safeTransfer(token, to, amount);
     }
 }

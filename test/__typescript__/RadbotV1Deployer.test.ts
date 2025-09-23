@@ -39,22 +39,24 @@ describe("RadbotV1Deployer", function () {
     await syntheticFactory.waitForDeployment();
 
     // Create synthetic tokens for testing
-    await syntheticFactory.createSynthetic(
-      stringToBytes32("Token A"),
-      stringToBytes16("TKA"),
-      18
-    );
+    const tokenAData = {
+      name: stringToBytes32("Token A"),
+      symbol: stringToBytes16("TKA"),
+      decimals: 18,
+    };
+    await syntheticFactory.createSynthetic(tokenAData);
     const syntheticAAddress = await syntheticFactory.getSynthetic(
       stringToBytes16("TKA"),
       18
     );
     tokenA = await ethers.getContractAt("RadbotSynthetic", syntheticAAddress);
 
-    await syntheticFactory.createSynthetic(
-      stringToBytes32("Token B"),
-      stringToBytes16("TKB"),
-      18
-    );
+    const tokenBData = {
+      name: stringToBytes32("Token B"),
+      symbol: stringToBytes16("TKB"),
+      decimals: 18,
+    };
+    await syntheticFactory.createSynthetic(tokenBData);
     const syntheticBAddress = await syntheticFactory.getSynthetic(
       stringToBytes16("TKB"),
       18
@@ -63,38 +65,59 @@ describe("RadbotV1Deployer", function () {
 
     // Deploy the factory
     const Factory = await ethers.getContractFactory("RadbotV1Factory");
-    factory = await Factory.deploy();
+    factory = await Factory.deploy(await syntheticFactory.getAddress());
     await factory.waitForDeployment();
 
-    // Deploy reservoir factory
-    const ReservoirFactory = await ethers.getContractFactory(
-      "RadbotV1ReservoirFactory"
-    );
-    reservoirFactory = await ReservoirFactory.deploy();
-    await reservoirFactory.waitForDeployment();
-
-    // Create reservoir using the reservoir factory
-    await reservoirFactory.createReservoir(
-      await tokenA.getAddress(),
-      await tokenB.getAddress()
-    );
-    const reservoirAddress = await reservoirFactory.reservoir();
-    reservoir = await ethers.getContractAt(
-      "RadbotV1Reservoir",
-      reservoirAddress
+    // Get the reservoir factory address from the factory
+    const reservoirFactory = await ethers.getContractAt(
+      "RadbotV1ReservoirFactory",
+      await factory.reservoirFactory()
     );
 
-    // Create a deployer using the factory
+    // Reservoir will be created automatically when factory.create() is called
+
+    // Deploy mock reserve tokens
+    const MockUSDC = await ethers.getContractFactory("MockUSDC");
+    const reserveToken0 = await MockUSDC.deploy();
+    await reserveToken0.waitForDeployment();
+
+    const MockUSDT = await ethers.getContractFactory("MockUSDT");
+    const reserveToken1 = await MockUSDT.deploy();
+    await reserveToken1.waitForDeployment();
+
+    // // Create a deployer using the factory
+    // const tokenAData = {
+    //   name: stringToBytes32("Token A"),
+    //   symbol: stringToBytes16("TKA"),
+    //   decimals: 18,
+    // };
+    // const tokenBData = {
+    //   name: stringToBytes32("Token B"),
+    //   symbol: stringToBytes16("TKB"),
+    //   decimals: 18,
+    // };
     await factory.create(
-      await tokenA.getAddress(),
-      await tokenB.getAddress(),
-      3000
+      tokenAData,
+      tokenBData,
+      3000,
+      await reserveToken0.getAddress(),
+      await reserveToken1.getAddress()
     );
+
+    // // Get the synthetic token addresses
+    // const syntheticAAddress = await syntheticFactory.getSynthetic(
+    //   stringToBytes16("TKA"),
+    //   18
+    // );
+    // const syntheticBAddress = await syntheticFactory.getSynthetic(
+    //   stringToBytes16("TKB"),
+    //   18
+    // );
 
     // Get the deployer address using the factory's getDeployer function
     const deployerAddress = await factory.getDeployer(
-      await tokenA.getAddress(),
-      await tokenB.getAddress(),
+      syntheticAAddress,
+      syntheticBAddress,
       3000
     );
 
@@ -110,6 +133,16 @@ describe("RadbotV1Deployer", function () {
     );
     mockCallback = await MockCallbackFactory.deploy(deployerAddress);
     await mockCallback.waitForDeployment();
+
+    // Get the reservoir address from the reservoir factory
+    const reservoirAddress = await reservoirFactory.reservoir(
+      await reserveToken0.getAddress(),
+      await reserveToken1.getAddress()
+    );
+    reservoir = await ethers.getContractAt(
+      "RadbotV1Reservoir",
+      reservoirAddress
+    );
   });
 
   describe("Deployment", function () {

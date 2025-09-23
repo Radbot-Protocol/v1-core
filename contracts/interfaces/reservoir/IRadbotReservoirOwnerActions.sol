@@ -5,4 +5,6 @@ interface IRadbotReservoirOwnerActions {
     function withdraw0(address to, uint256 amount) external;
 
     function withdraw1(address to, uint256 amount) external;
+
+    function initialize(address deployer_) external;
 }

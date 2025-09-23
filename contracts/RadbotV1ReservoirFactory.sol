@@ -22,29 +22,24 @@ contract RadbotV1ReservoirFactory is IRadbotV1ReservoirFactory, NoDelegateCall {
     }
 
     address public immutable override owner;
-    address public override reservoir;
+
+    mapping(address => mapping(address => address)) public override reservoir;
 
     Parameters public override parameters;
 
-    uint8 private _lock = 0;
-
-    modifier lock() {
-        require(_lock == 0, "L");
-        _;
-    }
-
-    constructor() {
-        owner = msg.sender;
+    constructor(address factory_) {
+        owner = factory_;
     }
 
     function createReservoir(
         address token0,
         address token1
-    ) external override noDelegateCall lock {
+    ) external override noDelegateCall returns (address deployed) {
         require(msg.sender == owner, "O");
         require(token0 != token1, "TA");
         require(token0 != address(0), "TO");
         require(token1 != address(0), "TO");
+        require(reservoir[token0][token1] == address(0), "RD");
 
         parameters = Parameters({
             factory: address(this),
@@ -59,12 +54,13 @@ contract RadbotV1ReservoirFactory is IRadbotV1ReservoirFactory, NoDelegateCall {
             upperLimitR: 3000
         });
 
-        reservoir = address(
+        deployed = address(
             new RadbotV1Reservoir{salt: keccak256(abi.encode(token0, token1))}()
         );
 
-        delete parameters;
+        reservoir[token0][token1] = deployed;
+        reservoir[token1][token0] = deployed;
 
-        _lock = 1;
+        delete parameters;
     }
 }

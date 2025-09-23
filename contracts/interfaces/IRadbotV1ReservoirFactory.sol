@@ -25,9 +25,15 @@ interface IRadbotV1ReservoirFactory {
             uint256 upperLimitR
         );
 
-    function createReservoir(address token0, address token1) external;
+    function createReservoir(
+        address token0,
+        address token1
+    ) external returns (address deployed);
 
     function owner() external view returns (address);
 
-    function reservoir() external view returns (address);
+    function reservoir(
+        address token0,
+        address token1
+    ) external view returns (address);
 }

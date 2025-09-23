@@ -30,6 +30,8 @@ import "./interfaces/callbacks/IRadbotV1MintCallback.sol";
 
 import "./interfaces/callbacks/IRadbotV1IgniteCallback.sol";
 
+import "./interfaces/IRadbotReservoir.sol";
+
 contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
     using LowGasSafeMath for uint256;
     using LowGasSafeMath for int256;
@@ -929,6 +931,11 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
             );
 
             SyntheticHelper.safeMint(token0, address(this), uint256(amount0));
+
+            IRadbotReservoir(reservoir).sendReserve(
+                recipient,
+                uint256(amount0)
+            );
 
             require(balance0() >= balance0Before.add(uint256(amount0)), "IIA");
         } else {

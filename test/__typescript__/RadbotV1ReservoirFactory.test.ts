@@ -23,9 +23,9 @@ describe("RadbotV1ReservoirFactory", function () {
     mockUSDT = await MockUSDT.deploy();
     await mockUSDT.waitForDeployment();
 
-    // Deploy factory
+    // Deploy factory (passing owner address)
     const Factory = await ethers.getContractFactory("RadbotV1ReservoirFactory");
-    factory = await Factory.deploy();
+    factory = await Factory.deploy(owner.address);
     await factory.waitForDeployment();
   });
 
@@ -35,7 +35,12 @@ describe("RadbotV1ReservoirFactory", function () {
     });
 
     it("Should initialize with zero address for reservoir", async function () {
-      expect(await factory.reservoir()).to.equal(ethers.ZeroAddress);
+      expect(
+        await factory.reservoir(
+          await mockUSDC.getAddress(),
+          await mockUSDT.getAddress()
+        )
+      ).to.equal(ethers.ZeroAddress);
     });
 
     it("Should initialize with empty parameters", async function () {
@@ -61,7 +66,10 @@ describe("RadbotV1ReservoirFactory", function () {
       );
 
       const receipt = await tx.wait();
-      const reservoirAddress = await factory.reservoir();
+      const reservoirAddress = await factory.reservoir(
+        await mockUSDC.getAddress(),
+        await mockUSDT.getAddress()
+      );
 
       expect(reservoirAddress).to.not.equal(ethers.ZeroAddress);
     });
@@ -72,7 +80,10 @@ describe("RadbotV1ReservoirFactory", function () {
         await mockUSDC.getAddress()
       );
 
-      const reservoirAddress = await factory.reservoir();
+      const reservoirAddress = await factory.reservoir(
+        await mockUSDC.getAddress(),
+        await mockUSDT.getAddress()
+      );
       expect(reservoirAddress).to.not.equal(ethers.ZeroAddress);
     });
 
@@ -86,7 +97,10 @@ describe("RadbotV1ReservoirFactory", function () {
 
       // Parameters are cleared after creation, so we check they were set correctly
       // by verifying the reservoir was created with correct values
-      const reservoirAddress = await factory.reservoir();
+      const reservoirAddress = await factory.reservoir(
+        await mockUSDC.getAddress(),
+        await mockUSDT.getAddress()
+      );
       const reservoir = await ethers.getContractAt(
         "RadbotV1Reservoir",
         reservoirAddress
@@ -144,7 +158,10 @@ describe("RadbotV1ReservoirFactory", function () {
         await mockUSDC.getAddress(),
         await mockUSDT.getAddress()
       );
-      const firstReservoir = await factory.reservoir();
+      const firstReservoir = await factory.reservoir(
+        await mockUSDC.getAddress(),
+        await mockUSDT.getAddress()
+      );
 
       // Try to create second reservoir (this should fail)
       await expect(
@@ -152,10 +169,13 @@ describe("RadbotV1ReservoirFactory", function () {
           await mockUSDT.getAddress(),
           await mockUSDC.getAddress()
         )
-      ).to.be.revertedWith("L");
+      ).to.be.revertedWith("RD");
 
       // The factory should still have the first reservoir
-      const currentReservoir = await factory.reservoir();
+      const currentReservoir = await factory.reservoir(
+        await mockUSDC.getAddress(),
+        await mockUSDT.getAddress()
+      );
       expect(currentReservoir).to.equal(firstReservoir);
       expect(currentReservoir).to.not.equal(ethers.ZeroAddress);
     });
@@ -172,7 +192,10 @@ describe("RadbotV1ReservoirFactory", function () {
       ).to.be.revertedWith("O");
 
       // Reservoir should still be zero address
-      const reservoirAddress = await factory.reservoir();
+      const reservoirAddress = await factory.reservoir(
+        await mockUSDC.getAddress(),
+        await mockUSDT.getAddress()
+      );
       expect(reservoirAddress).to.equal(ethers.ZeroAddress);
     });
 
@@ -183,19 +206,25 @@ describe("RadbotV1ReservoirFactory", function () {
         await mockUSDT.getAddress()
       );
 
-      const reservoirAddress = await factory.reservoir();
+      const reservoirAddress = await factory.reservoir(
+        await mockUSDC.getAddress(),
+        await mockUSDT.getAddress()
+      );
       expect(reservoirAddress).to.not.equal(ethers.ZeroAddress);
 
-      // Try to create another reservoir (should fail due to lock)
+      // Try to create another reservoir (should fail due to duplicate)
       await expect(
         factory.createReservoir(
           await mockUSDT.getAddress(),
           await mockUSDC.getAddress()
         )
-      ).to.be.revertedWith("L");
+      ).to.be.revertedWith("RD");
 
       // Verify the original reservoir is still there
-      const currentReservoir = await factory.reservoir();
+      const currentReservoir = await factory.reservoir(
+        await mockUSDC.getAddress(),
+        await mockUSDT.getAddress()
+      );
       expect(currentReservoir).to.equal(reservoirAddress);
     });
   });
@@ -208,7 +237,10 @@ describe("RadbotV1ReservoirFactory", function () {
         await mockUSDC.getAddress(),
         await mockUSDT.getAddress()
       );
-      const reservoirAddress = await factory.reservoir();
+      const reservoirAddress = await factory.reservoir(
+        await mockUSDC.getAddress(),
+        await mockUSDT.getAddress()
+      );
       reservoir = await ethers.getContractAt(
         "RadbotV1Reservoir",
         reservoirAddress
@@ -316,7 +348,10 @@ describe("RadbotV1ReservoirFactory", function () {
         await mockUSDC.getAddress()
       );
 
-      const reservoirAddress = await factory.reservoir();
+      const reservoirAddress = await factory.reservoir(
+        await mockUSDC.getAddress(),
+        await mockUSDT.getAddress()
+      );
       const reservoir = await ethers.getContractAt(
         "RadbotV1Reservoir",
         reservoirAddress
@@ -332,20 +367,26 @@ describe("RadbotV1ReservoirFactory", function () {
         await mockUSDC.getAddress(),
         await mockUSDT.getAddress()
       );
-      const reservoir1Address = await factory.reservoir();
+      const reservoir1Address = await factory.reservoir(
+        await mockUSDC.getAddress(),
+        await mockUSDT.getAddress()
+      );
 
       // Deploy a new factory for second reservoir
       const Factory2 = await ethers.getContractFactory(
         "RadbotV1ReservoirFactory"
       );
-      const factory2 = await Factory2.deploy();
+      const factory2 = await Factory2.deploy(owner.address);
       await factory2.waitForDeployment();
 
       await factory2.createReservoir(
         await mockUSDT.getAddress(),
         await mockUSDC.getAddress()
       );
-      const reservoir2Address = await factory2.reservoir();
+      const reservoir2Address = await factory2.reservoir(
+        await mockUSDT.getAddress(),
+        await mockUSDC.getAddress()
+      );
 
       expect(reservoir1Address).to.not.equal(reservoir2Address);
     });
@@ -359,7 +400,10 @@ describe("RadbotV1ReservoirFactory", function () {
         await mockUSDT.getAddress()
       );
 
-      const reservoirAddress = await factory.reservoir();
+      const reservoirAddress = await factory.reservoir(
+        await mockUSDC.getAddress(),
+        await mockUSDT.getAddress()
+      );
       expect(reservoirAddress).to.not.equal(ethers.ZeroAddress);
 
       // The factory should not allow creating multiple reservoirs
@@ -369,10 +413,13 @@ describe("RadbotV1ReservoirFactory", function () {
           await mockUSDT.getAddress(),
           await mockUSDC.getAddress()
         )
-      ).to.be.revertedWith("L");
+      ).to.be.revertedWith("RD");
 
       // The factory should still have the original reservoir
-      const currentReservoirAddress = await factory.reservoir();
+      const currentReservoirAddress = await factory.reservoir(
+        await mockUSDC.getAddress(),
+        await mockUSDT.getAddress()
+      );
       expect(currentReservoirAddress).to.equal(reservoirAddress);
       expect(currentReservoirAddress).to.not.equal(ethers.ZeroAddress);
     });

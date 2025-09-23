@@ -7,12 +7,13 @@ const { ethers } = await network.connect();
 describe("RadbotV1Factory", function () {
   let factory: any;
   let syntheticFactory: any;
+  let reservoirFactory: any;
   let stringHelper: any;
   let owner: any;
   let user1: any;
   let user2: any;
-  let tokenA: any;
-  let tokenB: any;
+  let reserveToken0: any;
+  let reserveToken1: any;
 
   beforeEach(async function () {
     [owner, user1, user2] = await ethers.getSigners();
@@ -34,37 +35,25 @@ describe("RadbotV1Factory", function () {
     syntheticFactory = await SyntheticFactory.deploy();
     await syntheticFactory.waitForDeployment();
 
-    // Create synthetic tokens for testing
-    await syntheticFactory.createSynthetic(
-      stringToBytes32("Token A"),
-      stringToBytes16("TKA"),
-      18
-    );
-    const syntheticAAddress = await syntheticFactory.getSynthetic(
-      stringToBytes16("TKA"),
-      18
-    );
-    tokenA = await ethers.getContractAt("RadbotSynthetic", syntheticAAddress);
+    // Deploy mock reserve tokens (USDC/USDT-like)
+    const MockUSDC = await ethers.getContractFactory("MockUSDC");
+    reserveToken0 = await MockUSDC.deploy();
+    await reserveToken0.waitForDeployment();
 
-    await syntheticFactory.createSynthetic(
-      stringToBytes32("Token B"),
-      stringToBytes16("TKB"),
-      18
-    );
-    const syntheticBAddress = await syntheticFactory.getSynthetic(
-      stringToBytes16("TKB"),
-      18
-    );
-    tokenB = await ethers.getContractAt("RadbotSynthetic", syntheticBAddress);
+    const MockUSDT = await ethers.getContractFactory("MockUSDT");
+    reserveToken1 = await MockUSDT.deploy();
+    await reserveToken1.waitForDeployment();
 
-    // Initialize the synthetic tokens
-    await tokenA.initialize(owner.address, ethers.parseEther("1000000"));
-    await tokenB.initialize(owner.address, ethers.parseEther("1000000"));
-
-    // Deploy the factory
+    // Deploy the factory with required parameters
     const Factory = await ethers.getContractFactory("RadbotV1Factory");
-    factory = await Factory.deploy();
+    factory = await Factory.deploy(await syntheticFactory.getAddress());
     await factory.waitForDeployment();
+
+    // Get the reservoir factory address from the factory
+    reservoirFactory = await ethers.getContractAt(
+      "RadbotV1ReservoirFactory",
+      await factory.reservoirFactory()
+    );
   });
 
   describe("Deployment", function () {
@@ -81,10 +70,23 @@ describe("RadbotV1Factory", function () {
 
   describe("create", function () {
     it("Should create a deployer successfully", async function () {
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+      const tokenB = {
+        name: stringToBytes32("Token B"),
+        symbol: stringToBytes16("TKB"),
+        decimals: 18,
+      };
+
       const tx = await factory.create(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        3000
+        tokenA,
+        tokenB,
+        3000,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
       );
       const receipt = await tx.wait();
 
@@ -96,100 +98,236 @@ describe("RadbotV1Factory", function () {
       );
       expect(event).to.not.be.undefined;
 
-      // Check that deployer address is stored in mapping
-      const deployerAddress = await factory.getDeployer(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        3000
-      );
-      expect(deployerAddress).to.not.equal(ethers.ZeroAddress);
+      // Decode the event to check parameters
+      const decodedEvent = factory.interface.parseLog(event!);
+      expect(decodedEvent?.args.token0).to.not.equal(ethers.ZeroAddress);
+      expect(decodedEvent?.args.token1).to.not.equal(ethers.ZeroAddress);
+      expect(decodedEvent?.args.fee).to.equal(3000);
+      expect(decodedEvent?.args.tickSpacing).to.equal(60);
+      expect(decodedEvent?.args.deployer).to.not.equal(ethers.ZeroAddress);
+      expect(decodedEvent?.args.reservoir).to.not.equal(ethers.ZeroAddress);
+      expect(decodedEvent?.args.synthetic0).to.not.equal(ethers.ZeroAddress);
+      expect(decodedEvent?.args.synthetic1).to.not.equal(ethers.ZeroAddress);
     });
 
     it("Should revert if tokens are the same", async function () {
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+
       await expect(
         factory.create(
-          await tokenA.getAddress(),
-          await tokenA.getAddress(),
-          3000
+          tokenA,
+          tokenA,
+          3000,
+          await reserveToken0.getAddress(),
+          await reserveToken1.getAddress()
         )
       ).to.be.revertedWith("TA");
     });
 
     it("Should revert if fee is not enabled", async function () {
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+      const tokenB = {
+        name: stringToBytes32("Token B"),
+        symbol: stringToBytes16("TKB"),
+        decimals: 18,
+      };
+
       await expect(
         factory.create(
-          await tokenA.getAddress(),
-          await tokenB.getAddress(),
-          2500
+          tokenA,
+          tokenB,
+          2500,
+          await reserveToken0.getAddress(),
+          await reserveToken1.getAddress()
         )
       ).to.be.revertedWith("TS");
     });
 
-    it("Should revert if token0 is zero address", async function () {
+    it("Should revert if reserve token is zero address", async function () {
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+      const tokenB = {
+        name: stringToBytes32("Token B"),
+        symbol: stringToBytes16("TKB"),
+        decimals: 18,
+      };
+
       await expect(
-        factory.create(ethers.ZeroAddress, await tokenB.getAddress(), 3000)
+        factory.create(
+          tokenA,
+          tokenB,
+          3000,
+          ethers.ZeroAddress,
+          await reserveToken1.getAddress()
+        )
       ).to.be.revertedWith("TO");
     });
 
     it("Should create deployer with correct token ordering", async function () {
-      // tokenA address should be less than tokenB address for proper ordering
-      const tokenAAddr = await tokenA.getAddress();
-      const tokenBAddr = await tokenB.getAddress();
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+      const tokenB = {
+        name: stringToBytes32("Token B"),
+        symbol: stringToBytes16("TKB"),
+        decimals: 18,
+      };
 
-      if (tokenAAddr < tokenBAddr) {
-        const tx = await factory.create(tokenAAddr, tokenBAddr, 3000);
-        const receipt = await tx.wait();
+      const tx = await factory.create(
+        tokenA,
+        tokenB,
+        3000,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
+      );
+      const receipt = await tx.wait();
 
-        const event = receipt?.logs.find(
-          (log: any) =>
-            log.topics[0] ===
-            factory.interface.getEvent("DeployerCreated").topicHash
-        );
-        expect(event).to.not.be.undefined;
-      }
+      const event = receipt?.logs.find(
+        (log: any) =>
+          log.topics[0] ===
+          factory.interface.getEvent("DeployerCreated").topicHash
+      );
+      expect(event).to.not.be.undefined;
+
+      // Verify token ordering
+      const decodedEvent = factory.interface.parseLog(event!);
+      expect(BigInt(decodedEvent?.args.token0)).to.be.lt(
+        BigInt(decodedEvent?.args.token1)
+      );
     });
   });
 
   describe("getDeployer", function () {
     it("Should return zero address for non-existent deployer", async function () {
+      // Create synthetic tokens first
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+      const tokenB = {
+        name: stringToBytes32("Token B"),
+        symbol: stringToBytes16("TKB"),
+        decimals: 18,
+      };
+
+      await factory.create(
+        tokenA,
+        tokenB,
+        3000,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
+      );
+
+      // Get the synthetic token addresses from the event
+      const syntheticAAddress = await syntheticFactory.getSynthetic(
+        stringToBytes16("TKA"),
+        18
+      );
+      const syntheticBAddress = await syntheticFactory.getSynthetic(
+        stringToBytes16("TKB"),
+        18
+      );
+
+      // Check for non-existent deployer with different fee
       const deployer = await factory.getDeployer(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        3000
+        syntheticAAddress,
+        syntheticBAddress,
+        500
       );
       expect(deployer).to.equal(ethers.ZeroAddress);
     });
 
     it("Should return deployer address after creation", async function () {
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+      const tokenB = {
+        name: stringToBytes32("Token B"),
+        symbol: stringToBytes16("TKB"),
+        decimals: 18,
+      };
+
       await factory.create(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        3000
+        tokenA,
+        tokenB,
+        3000,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
       );
+
+      // Get the synthetic token addresses
+      const syntheticAAddress = await syntheticFactory.getSynthetic(
+        stringToBytes16("TKA"),
+        18
+      );
+      const syntheticBAddress = await syntheticFactory.getSynthetic(
+        stringToBytes16("TKB"),
+        18
+      );
+
       const deployer = await factory.getDeployer(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
+        syntheticAAddress,
+        syntheticBAddress,
         3000
       );
       expect(deployer).to.not.equal(ethers.ZeroAddress);
     });
 
     it("Should return same deployer for reverse token order", async function () {
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+      const tokenB = {
+        name: stringToBytes32("Token B"),
+        symbol: stringToBytes16("TKB"),
+        decimals: 18,
+      };
+
       await factory.create(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        3000
+        tokenA,
+        tokenB,
+        3000,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
+      );
+
+      // Get the synthetic token addresses
+      const syntheticAAddress = await syntheticFactory.getSynthetic(
+        stringToBytes16("TKA"),
+        18
+      );
+      const syntheticBAddress = await syntheticFactory.getSynthetic(
+        stringToBytes16("TKB"),
+        18
       );
 
       const deployerAB = await factory.getDeployer(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
+        syntheticAAddress,
+        syntheticBAddress,
         3000
       );
 
       const deployerBA = await factory.getDeployer(
-        await tokenB.getAddress(),
-        await tokenA.getAddress(),
+        syntheticBAddress,
+        syntheticAAddress,
         3000
       );
 
@@ -197,27 +335,52 @@ describe("RadbotV1Factory", function () {
     });
 
     it("Should return different deployers for different fees", async function () {
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+      const tokenB = {
+        name: stringToBytes32("Token B"),
+        symbol: stringToBytes16("TKB"),
+        decimals: 18,
+      };
+
       await factory.create(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        3000
+        tokenA,
+        tokenB,
+        3000,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
       );
 
       await factory.create(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        500
+        tokenA,
+        tokenB,
+        500,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
+      );
+
+      // Get the synthetic token addresses
+      const syntheticAAddress = await syntheticFactory.getSynthetic(
+        stringToBytes16("TKA"),
+        18
+      );
+      const syntheticBAddress = await syntheticFactory.getSynthetic(
+        stringToBytes16("TKB"),
+        18
       );
 
       const deployer3000 = await factory.getDeployer(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
+        syntheticAAddress,
+        syntheticBAddress,
         3000
       );
 
       const deployer500 = await factory.getDeployer(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
+        syntheticAAddress,
+        syntheticBAddress,
         500
       );
 
@@ -225,133 +388,69 @@ describe("RadbotV1Factory", function () {
     });
   });
 
-  describe("setOwner", function () {
-    it("Should change owner successfully", async function () {
-      await expect(factory.setOwner(user1.address))
-        .to.emit(factory, "OwnerChanged")
-        .withArgs(owner.address, user1.address);
-
-      expect(await factory.owner()).to.equal(user1.address);
-    });
-
-    it("Should revert if not called by owner", async function () {
-      await expect(
-        factory.connect(user1).setOwner(user2.address)
-      ).to.be.revertedWith("MO");
-    });
-
-    it("Should allow new owner to change owner again", async function () {
-      // First change owner to user1
-      await factory.setOwner(user1.address);
-      expect(await factory.owner()).to.equal(user1.address);
-
-      // Then user1 changes owner to user2
-      await expect(factory.connect(user1).setOwner(user2.address))
-        .to.emit(factory, "OwnerChanged")
-        .withArgs(user1.address, user2.address);
-
-      expect(await factory.owner()).to.equal(user2.address);
-    });
-
-    it("Should allow setting owner to zero address for permissionless mode", async function () {
-      await expect(factory.setOwner(ethers.ZeroAddress))
-        .to.emit(factory, "OwnerChanged")
-        .withArgs(owner.address, ethers.ZeroAddress);
-
-      expect(await factory.owner()).to.equal(ethers.ZeroAddress);
-    });
-  });
-
-  describe("enableFeeAmount", function () {
-    it("Should enable new fee amount successfully", async function () {
-      await expect(factory.enableFeeAmount(2500, 50))
-        .to.emit(factory, "FeeAmountEnabled")
-        .withArgs(2500, 50);
-
-      expect(await factory.feeAmountTickSpacing(2500)).to.equal(50);
-    });
-
-    it("Should revert if not called by owner", async function () {
-      await expect(
-        factory.connect(user1).enableFeeAmount(2500, 50)
-      ).to.be.revertedWith("MO");
-    });
-
-    it("Should revert if fee is too high", async function () {
-      await expect(factory.enableFeeAmount(1000000, 50)).to.be.revertedWith(
-        "FE"
-      );
-    });
-
-    it("Should revert if fee is already enabled", async function () {
-      await expect(factory.enableFeeAmount(500, 10)).to.be.revertedWith("FE");
-    });
-
-    it("Should revert if tickSpacing is too high", async function () {
-      await expect(factory.enableFeeAmount(2500, 16384)).to.be.revertedWith(
-        "TS"
-      );
-    });
-
-    it("Should revert if tickSpacing is zero", async function () {
-      await expect(factory.enableFeeAmount(2500, 0)).to.be.revertedWith("TS");
-    });
-
-    it("Should allow creating deployer after enabling new fee", async function () {
-      // Enable new fee
-      await factory.enableFeeAmount(2500, 50);
-
-      // Create deployer with new fee
-      const tx = await factory.create(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        2500
-      );
-      const receipt = await tx.wait();
-
-      // Check that DeployerCreated event was emitted
-      const event = receipt?.logs.find(
-        (log: any) =>
-          log.topics[0] ===
-          factory.interface.getEvent("DeployerCreated").topicHash
-      );
-      expect(event).to.not.be.undefined;
-    });
-  });
+  // Note: setOwner and enableFeeAmount functions are commented out in the contract
+  // These tests are removed as the functions are not available
 
   describe("Edge Cases", function () {
     it("Should handle multiple fee tiers for same token pair", async function () {
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+      const tokenB = {
+        name: stringToBytes32("Token B"),
+        symbol: stringToBytes16("TKB"),
+        decimals: 18,
+      };
+
       // Create deployers for different fee tiers
       await factory.create(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        500
+        tokenA,
+        tokenB,
+        500,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
       );
       await factory.create(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        3000
+        tokenA,
+        tokenB,
+        3000,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
       );
       await factory.create(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        10000
+        tokenA,
+        tokenB,
+        10000,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
+      );
+
+      // Get the synthetic token addresses
+      const syntheticAAddress = await syntheticFactory.getSynthetic(
+        stringToBytes16("TKA"),
+        18
+      );
+      const syntheticBAddress = await syntheticFactory.getSynthetic(
+        stringToBytes16("TKB"),
+        18
       );
 
       // Verify all deployers are different
       const deployer500 = await factory.getDeployer(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
+        syntheticAAddress,
+        syntheticBAddress,
         500
       );
       const deployer3000 = await factory.getDeployer(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
+        syntheticAAddress,
+        syntheticBAddress,
         3000
       );
       const deployer10000 = await factory.getDeployer(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
+        syntheticAAddress,
+        syntheticBAddress,
         10000
       );
 
@@ -361,41 +460,79 @@ describe("RadbotV1Factory", function () {
     });
 
     it("Should revert when trying to create deployer twice", async function () {
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+      const tokenB = {
+        name: stringToBytes32("Token B"),
+        symbol: stringToBytes16("TKB"),
+        decimals: 18,
+      };
+
       // Create deployer first time
       await factory.create(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        3000
+        tokenA,
+        tokenB,
+        3000,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
       );
 
       // Try to create same deployer again
       await expect(
         factory.create(
-          await tokenA.getAddress(),
-          await tokenB.getAddress(),
-          3000
+          tokenA,
+          tokenB,
+          3000,
+          await reserveToken0.getAddress(),
+          await reserveToken1.getAddress()
         )
       ).to.be.revertedWith("DE");
     });
 
     it("Should handle token address ordering correctly", async function () {
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+      const tokenB = {
+        name: stringToBytes32("Token B"),
+        symbol: stringToBytes16("TKB"),
+        decimals: 18,
+      };
+
       // Create tokens with specific addresses to test ordering
       await factory.create(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        3000
+        tokenA,
+        tokenB,
+        3000,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
+      );
+
+      // Get the synthetic token addresses
+      const syntheticAAddress = await syntheticFactory.getSynthetic(
+        stringToBytes16("TKA"),
+        18
+      );
+      const syntheticBAddress = await syntheticFactory.getSynthetic(
+        stringToBytes16("TKB"),
+        18
       );
 
       const deployerAddress = await factory.getDeployer(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
+        syntheticAAddress,
+        syntheticBAddress,
         3000
       );
 
       // Should be able to retrieve with reverse order
       const deployerAddressReverse = await factory.getDeployer(
-        await tokenB.getAddress(),
-        await tokenA.getAddress(),
+        syntheticBAddress,
+        syntheticAAddress,
         3000
       );
 
@@ -403,10 +540,24 @@ describe("RadbotV1Factory", function () {
     });
 
     it("Should emit correct events with proper parameters", async function () {
-      const tokenAAddr = await tokenA.getAddress();
-      const tokenBAddr = await tokenB.getAddress();
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+      const tokenB = {
+        name: stringToBytes32("Token B"),
+        symbol: stringToBytes16("TKB"),
+        decimals: 18,
+      };
 
-      const tx = await factory.create(tokenAAddr, tokenBAddr, 3000);
+      const tx = await factory.create(
+        tokenA,
+        tokenB,
+        3000,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
+      );
       const receipt = await tx.wait();
 
       // Find the DeployerCreated event
@@ -422,27 +573,42 @@ describe("RadbotV1Factory", function () {
       const decodedEvent = factory.interface.parseLog(event!);
 
       // The contract sorts tokens by address, so token0 should be the smaller address
-      const expectedToken0 = tokenAAddr < tokenBAddr ? tokenAAddr : tokenBAddr;
-      const expectedToken1 = tokenAAddr < tokenBAddr ? tokenBAddr : tokenAAddr;
-
-      expect(decodedEvent?.args.token0).to.equal(expectedToken0);
-      expect(decodedEvent?.args.token1).to.equal(expectedToken1);
+      expect(BigInt(decodedEvent?.args.token0)).to.be.lt(
+        BigInt(decodedEvent?.args.token1)
+      );
       expect(decodedEvent?.args.fee).to.equal(3000);
       expect(decodedEvent?.args.tickSpacing).to.equal(60);
+      expect(decodedEvent?.args.deployer).to.not.equal(ethers.ZeroAddress);
+      expect(decodedEvent?.args.reservoir).to.not.equal(ethers.ZeroAddress);
+      expect(decodedEvent?.args.synthetic0).to.not.equal(ethers.ZeroAddress);
+      expect(decodedEvent?.args.synthetic1).to.not.equal(ethers.ZeroAddress);
     });
   });
 
   describe("Gas Optimization", function () {
     it("Should have reasonable gas costs for deployer creation", async function () {
+      const tokenA = {
+        name: stringToBytes32("Token A"),
+        symbol: stringToBytes16("TKA"),
+        decimals: 18,
+      };
+      const tokenB = {
+        name: stringToBytes32("Token B"),
+        symbol: stringToBytes16("TKB"),
+        decimals: 18,
+      };
+
       const tx = await factory.create(
-        await tokenA.getAddress(),
-        await tokenB.getAddress(),
-        3000
+        tokenA,
+        tokenB,
+        3000,
+        await reserveToken0.getAddress(),
+        await reserveToken1.getAddress()
       );
       const receipt = await tx.wait();
 
       // Gas cost should be reasonable (adjust threshold as needed)
-      expect(receipt?.gasUsed).to.be.lessThan(5000000); // 5M gas limit
+      expect(receipt?.gasUsed).to.be.lessThan(8000000); // 8M gas limit
     });
   });
 });

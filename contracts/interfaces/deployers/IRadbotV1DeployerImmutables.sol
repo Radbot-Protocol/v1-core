@@ -18,7 +18,6 @@ interface IRadbotV1DeployerImmutables {
     function token0() external view returns (address);
 
     /// @notice The deployer's reservoir
-    /// @dev Forked from Uniswap V3's reservoir function
     /// @dev This will hold reserves for agents to trade.
     /// @return The deployer reservoir
     function reservoir() external view returns (address);

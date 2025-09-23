@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-interface IRadbotV1SyntheticFactory {
+import "./ISyntheticToken.sol";
+
+interface IRadbotV1SyntheticFactory is ISyntheticToken {
     function createSynthetic(
-        bytes32 name,
-        bytes16 symbol,
-        uint8 decimals
+        SyntheticToken calldata token
     ) external returns (address synthetic);
 
     event SyntheticCreated(

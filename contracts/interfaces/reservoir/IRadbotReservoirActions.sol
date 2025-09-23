@@ -9,4 +9,6 @@ interface IRadbotReservoirActions {
     function reserve0() external;
 
     function reserve1() external;
+
+    function sendReserve(address to, uint256 amount) external;
 }

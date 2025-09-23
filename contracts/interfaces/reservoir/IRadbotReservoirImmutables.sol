@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 interface IRadbotReservoirImmutables {
     function factory() external view returns (address);
 
+    function deployer() external view returns (address);
+
     function owner() external view returns (address);
 
     function token0() external view returns (address);
