@@ -32,14 +32,11 @@ abstract contract ReserveLocked is
     uint256 public immutable override maxWithdrawPerEpoch0;
     /// @inheritdoc IRadbotReservoirImmutables
     uint256 public immutable override maxWithdrawPerEpoch1;
-    /// @inheritdoc IRadbotReservoirImmutables
-    uint256 public immutable override maxWithdrawPerEpochR;
+
     /// @inheritdoc IRadbotReservoirImmutables
     uint256 public immutable override upperLimit0;
     /// @inheritdoc IRadbotReservoirImmutables
     uint256 public immutable override upperLimit1;
-    /// @inheritdoc IRadbotReservoirImmutables
-    uint256 public immutable override upperLimitR;
 
     /// @inheritdoc IRadbotReservoirImmutables
     uint256 public immutable override epochDuration;
@@ -241,11 +238,23 @@ abstract contract ReserveLocked is
     }
 
     function _advanceEpochIfNeeded() private {
-        uint256 elapsed = block.timestamp - _epochStartTime;
+        uint256 currentTime = _blockTimestamp();
+
+        if (currentTime < _epochStartTime) {
+            return;
+        }
+
+        uint256 elapsed = currentTime - _epochStartTime;
         if (elapsed >= epochDuration) {
             uint256 epochsPassed = elapsed / epochDuration;
-            _currentEpoch += epochsPassed;
-            _epochStartTime = _epochStartTime + epochsPassed * epochDuration;
+
+            // Use SafeMath for all arithmetic
+            uint256 newEpochStartTime = _epochStartTime.add(
+                epochsPassed.mul(epochDuration)
+            );
+
+            _currentEpoch = _currentEpoch.add(epochsPassed);
+            _epochStartTime = newEpochStartTime;
 
             emit EpochAdvanced(_currentEpoch, _epochStartTime);
         }

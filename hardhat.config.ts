@@ -4,6 +4,9 @@ import hardhatToolboxMochaEthersPlugin from "@nomicfoundation/hardhat-toolbox-mo
 import hardhatContractSizer from "@solidstate/hardhat-contract-sizer";
 import { configVariable } from "hardhat/config";
 
+import dotenv from "dotenv";
+dotenv.config({ path: ".env" });
+
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxMochaEthersPlugin, hardhatContractSizer],
 
@@ -59,6 +62,15 @@ const config: HardhatUserConfig = {
       chainType: "l1",
       url: configVariable("SEPOLIA_RPC_URL"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+
+    base: {
+      type: "http",
+      chainType: "op",
+      url: process.env.BASE_RPC_URL as string,
+      accounts: process.env.BASE_PRIVATE_KEY
+        ? [process.env.BASE_PRIVATE_KEY]
+        : [],
     },
   },
 };

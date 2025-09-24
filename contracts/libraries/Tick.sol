@@ -37,7 +37,7 @@ library Tick {
     }
 
     /// @notice Derives max liquidity per tick from given tick spacing
-    /// @dev Executed within the pool constructor
+    /// @dev Executed within the deployer constructor
     /// @param tickSpacing The amount of required tick separation, realized in multiples of `tickSpacing`
     ///     e.g., a tickSpacing of 3 requires ticks to be initialized every 3rd tick i.e., ..., -6, -3, 0, 3, 6, ...
     /// @return The max liquidity per tick
@@ -121,8 +121,8 @@ library Tick {
     /// @param liquidityDelta A new amount of liquidity to be added (subtracted) when tick is crossed from left to right (right to left)
     /// @param feeGrowthGlobal0X128 The all-time global fee growth, per unit of liquidity, in token0
     /// @param feeGrowthGlobal1X128 The all-time global fee growth, per unit of liquidity, in token1
-    /// @param secondsPerLiquidityCumulativeX128 The all-time seconds per max(1, liquidity) of the pool
-    /// @param tickCumulative The tick * time elapsed since the pool was first initialized
+    /// @param secondsPerLiquidityCumulativeX128 The all-time seconds per max(1, liquidity) of the deployer
+    /// @param tickCumulative The tick * time elapsed since the deployer was first initialized
     /// @param time The current block timestamp cast to a uint32
     /// @param upper true for updating a position's upper tick, or false for updating a position's lower tick
     /// @param maxLiquidity The maximum liquidity allocation for a single tick
@@ -189,7 +189,7 @@ library Tick {
     /// @param feeGrowthGlobal0X128 The all-time global fee growth, per unit of liquidity, in token0
     /// @param feeGrowthGlobal1X128 The all-time global fee growth, per unit of liquidity, in token1
     /// @param secondsPerLiquidityCumulativeX128 The current seconds per liquidity
-    /// @param tickCumulative The tick * time elapsed since the pool was first initialized
+    /// @param tickCumulative The tick * time elapsed since the deployer was first initialized
     /// @param time The current block.timestamp
     /// @return liquidityNet The amount of liquidity added (subtracted) when tick is crossed from left to right (right to left)
     function cross(

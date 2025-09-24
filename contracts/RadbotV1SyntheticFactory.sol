@@ -25,8 +25,8 @@ contract RadbotV1SyntheticFactory is IRadbotV1SyntheticFactory, NoDelegateCall {
 
     /// @notice Constructs a new RadbotV1SyntheticFactory
     /// @dev Sets the deployer as the initial owner
-    constructor() {
-        owner = msg.sender;
+    constructor(address owner_) {
+        owner = owner_;
     }
 
     /// @notice Creates a new synthetic token with the specified parameters

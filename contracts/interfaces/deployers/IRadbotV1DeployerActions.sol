@@ -38,7 +38,7 @@ interface IRadbotV1DeployerActions {
     /// @dev Does not recompute fees earned, which must be done either via mint or burn of any amount of liquidity.
     /// Collect must be called by the position owner. To withdraw only token0 or only token1, amount0Requested or
     /// amount1Requested may be set to zero. To withdraw all tokens owed, caller may pass any value greater than the
-    /// actual tokens owed, e.g. type(uint128).max. Tokens owed may be from accumulated swap fees or burned liquidity.
+    /// actual tokens owed, e.g. type(uint128).max. Tokens owed may be from accumulated ignite fees or burned liquidity.
     /// @dev Forked from Uniswap V3's collect function
     /// @param recipient The address which should receive the fees collected
     /// @param tickLower The lower tick of the position for which to collect fees

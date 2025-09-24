@@ -10,9 +10,9 @@ import {RadbotV1Deployer} from "./RadbotV1Deployer.sol";
 contract RadbotV1Launcher is IRadbotV1Launcher {
     /// @notice Parameters structure for deployer creation
     /// @param factory The contract address of the Radbot V1 factory
-    /// @param token0 The first token of the pool by address sort order
-    /// @param token1 The second token of the pool by address sort order
-    /// @param fee The fee collected upon every swap in the pool, denominated in hundredths of a bip
+    /// @param token0 The first token of the deployer by address sort order
+    /// @param token1 The second token of the deployer by address sort order
+    /// @param fee The fee collected upon every ignite in the deployer, denominated in hundredths of a bip
     /// @param tickSpacing The spacing between usable ticks
     struct Parameters {
         address factory;
@@ -29,9 +29,9 @@ contract RadbotV1Launcher is IRadbotV1Launcher {
     /// clearing it after deploying the deployer
     /// @dev Uses CREATE2 to deploy deployer contracts with deterministic addresses
     /// @param factory The contract address of the Radbot V1 factory
-    /// @param token0 The first token of the pool by address sort order
-    /// @param token1 The second token of the pool by address sort order
-    /// @param fee The fee collected upon every swap in the deployer, denominated in hundredths of a bip
+    /// @param token0 The first token of the deployer by address sort order
+    /// @param token1 The second token of the deployer by address sort order
+    /// @param fee The fee collected upon every ignite in the deployer, denominated in hundredths of a bip
     /// @param tickSpacing The spacing between usable ticks
     /// @return deployer The address of the newly deployed RadbotV1Deployer contract
     function launch(

@@ -27,7 +27,7 @@ describe("RadbotV1SyntheticFactory", function () {
         },
       }
     );
-    factory = await Factory.deploy();
+    factory = await Factory.deploy(owner.address);
     await factory.waitForDeployment();
   });
 

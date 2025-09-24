@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+/// @title Interface for Radbot Reservoir Events
+/// @notice Defines the events emitted by reservoir contracts
+/// @dev These events track epoch progression and withdrawal activities
 interface IRadbotReservoirEvents {
     /// @notice Emitted when a new epoch begins
     /// @param newEpoch The new epoch number
@@ -21,4 +24,6 @@ interface IRadbotReservoirEvents {
         address indexed token,
         uint256 amount
     );
+
+    event ReserveSent(address indexed to, uint256 amount, address token);
 }

@@ -19,21 +19,21 @@ interface IRadbotV1ReservoirFactory {
             uint256 epochDuration,
             uint256 maxWithdrawPerEpoch0,
             uint256 maxWithdrawPerEpoch1,
-            uint256 maxWithdrawPerEpochR,
             uint256 upperLimit0,
-            uint256 upperLimit1,
-            uint256 upperLimitR
+            uint256 upperLimit1
         );
 
     function createReservoir(
         address token0,
-        address token1
+        address token1,
+        address deployer
     ) external returns (address deployed);
 
     function owner() external view returns (address);
 
     function reservoir(
         address token0,
-        address token1
+        address token1,
+        address deployer
     ) external view returns (address);
 }

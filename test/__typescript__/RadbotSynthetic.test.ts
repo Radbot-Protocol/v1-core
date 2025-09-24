@@ -29,7 +29,7 @@ describe("RadbotSynthetic", function () {
         },
       }
     );
-    factory = await Factory.deploy();
+    factory = await Factory.deploy(owner.address);
     await factory.waitForDeployment();
 
     // Create a synthetic token for testing

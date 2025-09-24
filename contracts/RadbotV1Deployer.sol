@@ -72,10 +72,10 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
         uint16 observationCardinality;
         // the next maximum number of observations to store, triggered in observations.write
         uint16 observationCardinalityNext;
-        // the current protocol fee as a percentage of the swap fee taken on withdrawal
+        // the current protocol fee as a percentage of the ignite fee taken on withdrawal
         // represented as an integer denominator (1/x)%
         uint8 feeProtocol;
-        // whether the pool is locked
+        // whether the deployer is locked
         bool unlocked;
     }
     /// @inheritdoc IRadbotV1DeployerState
@@ -106,9 +106,9 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
     /// @inheritdoc IRadbotV1DeployerState
     Oracle.Observation[65535] public override observations;
 
-    /// @dev Mutually exclusive reentrancy protection into the pool to/from a method. This method also prevents entrance
-    /// to a function before the pool is initialized. The reentrancy guard is required throughout the contract because
-    /// we use balance checks to determine the payment status of interactions such as mint, swap and flash.
+    /// @dev Mutually exclusive reentrancy protection into the deployer to/from a method. This method also prevents entrance
+    /// to a function before the deployer is initialized. The reentrancy guard is required throughout the contract because
+    /// we use balance checks to determine the payment status of interactions such as mint, ignite and flash.
     modifier lock() {
         require(slot0.unlocked, "LOK");
         slot0.unlocked = false;
@@ -145,7 +145,7 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
         return uint32(block.timestamp); // truncation is desired
     }
 
-    /// @dev Get the pool's balance of token0
+    /// @dev Get the deployer's balance of token0
     /// @dev This function is gas optimized to avoid a redundant extcodesize check in addition to the returndatasize
     /// check
     function balance0() private view returns (uint256) {
@@ -159,7 +159,7 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
         return abi.decode(data, (uint256));
     }
 
-    /// @dev Get the pool's balance of token1
+    /// @dev Get the deployer's balance of token1
     /// @dev This function is gas optimized to avoid a redundant extcodesize check in addition to the returndatasize
     /// check
     function balance1() private view returns (uint256) {
@@ -351,8 +351,8 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
     /// @dev Effect some changes to a position
     /// @param params the position details and the change to the position's liquidity to effect
     /// @return position a storage pointer referencing the position with the given owner and tick range
-    /// @return amount0 the amount of token0 owed to the pool, negative if the pool should pay the recipient
-    /// @return amount1 the amount of token1 owed to the pool, negative if the pool should pay the recipient
+    /// @return amount0 the amount of token0 owed to the deployer, negative if the deployer should pay the recipient
+    /// @return amount1 the amount of token1 owed to the deployer, negative if the deployer should pay the recipient
     function _modifyPosition(
         ModifyPositionParams memory params
     )
@@ -629,7 +629,7 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
     struct Cache {
         // the protocol fee for the input token
         uint8 feeProtocol;
-        // liquidity at the beginning of the swap
+        // liquidity at the beginning of the ignite
         uint128 liquidityStart;
         // the timestamp of the current block
         uint32 blockTimestamp;
@@ -641,11 +641,11 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
         bool computedLatestObservation;
     }
 
-    // the top level state of the swap, the results of which are recorded in storage at the end
+    // the top level state of the ignite, the results of which are recorded in storage at the end
     struct State {
-        // the amount remaining to be swapped in/out of the input/output asset
+        // the amount remaining to be ignited in/out of the input/output asset
         int256 amountSpecifiedRemaining;
-        // the amount already swapped out/in of the output/input asset
+        // the amount already ignited out/in of the output/input asset
         int256 amountCalculated;
         // current sqrt(price)
         uint160 sqrtPriceX96;
@@ -662,15 +662,15 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
     struct StepComputations {
         // the price at the beginning of the step
         uint160 sqrtPriceStartX96;
-        // the next tick to swap to from the current tick in the swap direction
+        // the next tick to ignite to from the current tick in the ignite direction
         int24 tickNext;
         // whether tickNext is initialized or not
         bool initialized;
         // sqrt(price) for the next tick (1/0)
         uint160 sqrtPriceNextX96;
-        // how much is being swapped in in this step
+        // how much is being ignited in in this step
         uint256 amountIn;
-        // how much is being swapped out
+        // how much is being ignited out
         uint256 amountOut;
         // how much fee is being paid in
         uint256 feeAmount;
@@ -730,7 +730,7 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
             liquidity: cache.liquidityStart
         });
 
-        // continue swapping as long as we haven't used the entire input/output and haven't reached the price limit
+        // continue igniting as long as we haven't used the entire input/output and haven't reached the price limit
         while (
             state.amountSpecifiedRemaining != 0 &&
             state.sqrtPriceX96 != sqrtPriceLimitX96
@@ -756,7 +756,7 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
             // get the price for the next tick
             step.sqrtPriceNextX96 = TickMath.getSqrtRatioAtTick(step.tickNext);
 
-            // compute values to swap to the target tick, price limit, or point where input/output amount is exhausted
+            // compute values to ignite to the target tick, price limit, or point where input/output amount is exhausted
             (
                 state.sqrtPriceX96,
                 step.amountIn,
@@ -808,7 +808,7 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
             if (state.sqrtPriceX96 == step.sqrtPriceNextX96) {
                 // if the tick is initialized, run the tick transition
                 if (step.initialized) {
-                    // check for the placeholder value, which we replace with the actual value the first time the swap
+                    // check for the placeholder value, which we replace with the actual value the first time the ignite
                     // crosses an initialized tick
                     if (!cache.computedLatestObservation) {
                         (
@@ -910,10 +910,10 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
                 amountSpecified - state.amountSpecifiedRemaining
             );
 
-        // Burn token1 if trader is swapping token0 -> token1
+        // Burn token1 if trader is igniting token0 -> token1
 
         if (zeroForOne) {
-            // Trader is swapping token0 -> token1
+            // Trader is igniting token0 -> token1
             if (amount1 < 0)
                 // instead of sending token1 to recipient, burn it
                 SyntheticHelper.safeBurn(
@@ -939,7 +939,7 @@ contract RadbotV1Deployer is IRadbotV1Deployer, NoDelegateCall {
 
             require(balance0() >= balance0Before.add(uint256(amount0)), "IIA");
         } else {
-            // Trader is swapping token1 -> token0
+            // Trader is igniting token1 -> token0
             if (amount0 < 0)
                 // instead of sending token0 to recipient, burn it
                 SyntheticHelper.safeBurn(

@@ -8,7 +8,9 @@ import "./RadbotV1Launcher.sol";
 
 import "./interfaces/synthetic/IRadbotV1SyntheticFactory.sol";
 import "./interfaces/IRadbotV1ReservoirFactory.sol";
+import "./interfaces/IRadbotSynthetic.sol";
 import "./RadbotV1ReservoirFactory.sol";
+import "./RadbotV1SyntheticFactory.sol";
 
 contract RadbotV1Factory is IRadbotV1Factory, RadbotV1Launcher, NoDelegateCall {
     /// @inheritdoc IRadbotV1Factory
@@ -24,7 +26,7 @@ contract RadbotV1Factory is IRadbotV1Factory, RadbotV1Launcher, NoDelegateCall {
         public
         override getDeployer;
 
-    constructor(address syntheticFactory_) {
+    constructor() {
         owner = msg.sender;
         emit OwnerChanged(address(0), msg.sender);
 
@@ -35,10 +37,8 @@ contract RadbotV1Factory is IRadbotV1Factory, RadbotV1Launcher, NoDelegateCall {
         feeAmountTickSpacing[10000] = 200;
         emit FeeAmountEnabled(10000, 200);
 
-        syntheticFactory = syntheticFactory_;
-
-        // Deploy reservoir factory with this factory as owner
-        reservoirFactory = address(new RadbotV1ReservoirFactory(address(this)));
+        syntheticFactory = address(new RadbotV1SyntheticFactory(msg.sender));
+        reservoirFactory = address(new RadbotV1ReservoirFactory(msg.sender));
     }
 
     /// @inheritdoc IRadbotV1Factory
@@ -70,10 +70,10 @@ contract RadbotV1Factory is IRadbotV1Factory, RadbotV1Launcher, NoDelegateCall {
 
         // Check if reservoir already exists, create if not
         address reservoir = IRadbotV1ReservoirFactory(reservoirFactory)
-            .reservoir(reserve0, reserve1);
+            .reservoir(reserve0, reserve1, deployer);
         if (reservoir == address(0)) {
             reservoir = IRadbotV1ReservoirFactory(reservoirFactory)
-                .createReservoir(reserve0, reserve1);
+                .createReservoir(reserve0, reserve1, deployer);
         }
 
         emit DeployerCreated(
@@ -87,25 +87,4 @@ contract RadbotV1Factory is IRadbotV1Factory, RadbotV1Launcher, NoDelegateCall {
             sTokenB
         );
     }
-
-    // /// @inheritdoc IRadbotV1Factory
-    // function setOwner(address _owner) external override {
-    //     require(msg.sender == owner, "MO");
-    //     emit OwnerChanged(owner, _owner);
-    //     owner = _owner;
-    // }
-
-    // /// @inheritdoc IRadbotV1Factory
-    // function enableFeeAmount(uint24 fee, int24 tickSpacing) public override {
-    //     require(msg.sender == owner, "MO");
-    //     require(fee < 1000000, "FE");
-    //     // tick spacing is capped at 16384 to prevent the situation where tickSpacing is so large that
-    //     // TickBitmap#nextInitializedTickWithinOneWord overflows int24 container from a valid tick
-    //     // 16384 ticks represents a >5x price change with ticks of 1 bips
-    //     require(tickSpacing > 0 && tickSpacing < 16384, "TS");
-    //     require(feeAmountTickSpacing[fee] == 0, "FE");
-
-    //     feeAmountTickSpacing[fee] = tickSpacing;
-    //     emit FeeAmountEnabled(fee, tickSpacing);
-    // }
 }

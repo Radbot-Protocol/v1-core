@@ -32,7 +32,7 @@ describe("RadbotV1Factory", function () {
         },
       }
     );
-    syntheticFactory = await SyntheticFactory.deploy();
+    syntheticFactory = await SyntheticFactory.deploy(owner.address);
     await syntheticFactory.waitForDeployment();
 
     // Deploy mock reserve tokens (USDC/USDT-like)
@@ -44,9 +44,13 @@ describe("RadbotV1Factory", function () {
     reserveToken1 = await MockUSDT.deploy();
     await reserveToken1.waitForDeployment();
 
-    // Deploy the factory with required parameters
-    const Factory = await ethers.getContractFactory("RadbotV1Factory");
-    factory = await Factory.deploy(await syntheticFactory.getAddress());
+    // Deploy the factory with library linking
+    const Factory = await ethers.getContractFactory("RadbotV1Factory", {
+      libraries: {
+        StringHelper: await stringHelper.getAddress(),
+      },
+    });
+    factory = await Factory.deploy();
     await factory.waitForDeployment();
 
     // Get the reservoir factory address from the factory
@@ -232,12 +236,16 @@ describe("RadbotV1Factory", function () {
         await reserveToken1.getAddress()
       );
 
-      // Get the synthetic token addresses from the event
-      const syntheticAAddress = await syntheticFactory.getSynthetic(
+      // Get the synthetic token addresses from the factory's synthetic factory
+      const factorySyntheticFactory = await ethers.getContractAt(
+        "RadbotV1SyntheticFactory",
+        await factory.syntheticFactory()
+      );
+      const syntheticAAddress = await factorySyntheticFactory.getSynthetic(
         stringToBytes16("TKA"),
         18
       );
-      const syntheticBAddress = await syntheticFactory.getSynthetic(
+      const syntheticBAddress = await factorySyntheticFactory.getSynthetic(
         stringToBytes16("TKB"),
         18
       );
@@ -271,12 +279,16 @@ describe("RadbotV1Factory", function () {
         await reserveToken1.getAddress()
       );
 
-      // Get the synthetic token addresses
-      const syntheticAAddress = await syntheticFactory.getSynthetic(
+      // Get the synthetic token addresses from the factory's synthetic factory
+      const factorySyntheticFactory = await ethers.getContractAt(
+        "RadbotV1SyntheticFactory",
+        await factory.syntheticFactory()
+      );
+      const syntheticAAddress = await factorySyntheticFactory.getSynthetic(
         stringToBytes16("TKA"),
         18
       );
-      const syntheticBAddress = await syntheticFactory.getSynthetic(
+      const syntheticBAddress = await factorySyntheticFactory.getSynthetic(
         stringToBytes16("TKB"),
         18
       );
@@ -309,12 +321,16 @@ describe("RadbotV1Factory", function () {
         await reserveToken1.getAddress()
       );
 
-      // Get the synthetic token addresses
-      const syntheticAAddress = await syntheticFactory.getSynthetic(
+      // Get the synthetic token addresses from the factory's synthetic factory
+      const factorySyntheticFactory = await ethers.getContractAt(
+        "RadbotV1SyntheticFactory",
+        await factory.syntheticFactory()
+      );
+      const syntheticAAddress = await factorySyntheticFactory.getSynthetic(
         stringToBytes16("TKA"),
         18
       );
-      const syntheticBAddress = await syntheticFactory.getSynthetic(
+      const syntheticBAddress = await factorySyntheticFactory.getSynthetic(
         stringToBytes16("TKB"),
         18
       );
@@ -362,12 +378,16 @@ describe("RadbotV1Factory", function () {
         await reserveToken1.getAddress()
       );
 
-      // Get the synthetic token addresses
-      const syntheticAAddress = await syntheticFactory.getSynthetic(
+      // Get the synthetic token addresses from the factory's synthetic factory
+      const factorySyntheticFactory = await ethers.getContractAt(
+        "RadbotV1SyntheticFactory",
+        await factory.syntheticFactory()
+      );
+      const syntheticAAddress = await factorySyntheticFactory.getSynthetic(
         stringToBytes16("TKA"),
         18
       );
-      const syntheticBAddress = await syntheticFactory.getSynthetic(
+      const syntheticBAddress = await factorySyntheticFactory.getSynthetic(
         stringToBytes16("TKB"),
         18
       );
@@ -427,12 +447,16 @@ describe("RadbotV1Factory", function () {
         await reserveToken1.getAddress()
       );
 
-      // Get the synthetic token addresses
-      const syntheticAAddress = await syntheticFactory.getSynthetic(
+      // Get the synthetic token addresses from the factory's synthetic factory
+      const factorySyntheticFactory = await ethers.getContractAt(
+        "RadbotV1SyntheticFactory",
+        await factory.syntheticFactory()
+      );
+      const syntheticAAddress = await factorySyntheticFactory.getSynthetic(
         stringToBytes16("TKA"),
         18
       );
-      const syntheticBAddress = await syntheticFactory.getSynthetic(
+      const syntheticBAddress = await factorySyntheticFactory.getSynthetic(
         stringToBytes16("TKB"),
         18
       );
@@ -513,12 +537,16 @@ describe("RadbotV1Factory", function () {
         await reserveToken1.getAddress()
       );
 
-      // Get the synthetic token addresses
-      const syntheticAAddress = await syntheticFactory.getSynthetic(
+      // Get the synthetic token addresses from the factory's synthetic factory
+      const factorySyntheticFactory = await ethers.getContractAt(
+        "RadbotV1SyntheticFactory",
+        await factory.syntheticFactory()
+      );
+      const syntheticAAddress = await factorySyntheticFactory.getSynthetic(
         stringToBytes16("TKA"),
         18
       );
-      const syntheticBAddress = await syntheticFactory.getSynthetic(
+      const syntheticBAddress = await factorySyntheticFactory.getSynthetic(
         stringToBytes16("TKB"),
         18
       );

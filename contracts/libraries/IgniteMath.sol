@@ -4,23 +4,23 @@ pragma solidity ^0.8.0;
 import "./FullMath.sol";
 import "./SqrtPriceMath.sol";
 
-/// @title Computes the result of a swap within ticks
-/// @notice Contains methods for computing the result of a swap within a single tick price range, i.e., a single tick.
+/// @title Computes the result of an ignite within ticks
+/// @notice Contains methods for computing the result of an ignite within a single tick price range, i.e., a single tick.
 /// @dev Forked from Uniswap V3's SwapMath library
 /// @author Uniswap Labs (original implementation)
 /// @author RadBot (modifications and adaptations)
 library IgniteMath {
-    /// @notice Computes the result of swapping some amount in, or amount out, given the parameters of the swap
-    /// @dev The fee, plus the amount in, will never exceed the amount remaining if the swap's `amountSpecified` is positive
+    /// @notice Computes the result of igniting some amount in, or amount out, given the parameters of the ignite
+    /// @dev The fee, plus the amount in, will never exceed the amount remaining if the ignite's `amountSpecified` is positive
     /// @dev Forked from Uniswap V3's SwapMath.computeSwapStep function
-    /// @param sqrtRatioCurrentX96 The current sqrt price of the pool
-    /// @param sqrtRatioTargetX96 The price that cannot be exceeded, from which the direction of the swap is inferred
+    /// @param sqrtRatioCurrentX96 The current sqrt price of the deployer
+    /// @param sqrtRatioTargetX96 The price that cannot be exceeded, from which the direction of the ignite is inferred
     /// @param liquidity The usable liquidity
-    /// @param amountRemaining How much input or output amount is remaining to be swapped in/out
+    /// @param amountRemaining How much input or output amount is remaining to be ignited in/out
     /// @param feePips The fee taken from the input amount, expressed in hundredths of a bip
-    /// @return sqrtRatioNextX96 The price after swapping the amount in/out, not to exceed the price target
-    /// @return amountIn The amount to be swapped in, of either token0 or token1, based on the direction of the swap
-    /// @return amountOut The amount to be received, of either token0 or token1, based on the direction of the swap
+    /// @return sqrtRatioNextX96 The price after igniting the amount in/out, not to exceed the price target
+    /// @return amountIn The amount to be ignited in, of either token0 or token1, based on the direction of the ignite
+    /// @return amountOut The amount to be received, of either token0 or token1, based on the direction of the ignite
     /// @return feeAmount The amount of input that will be taken as a fee
     function computeIgniteStep(
         uint160 sqrtRatioCurrentX96,

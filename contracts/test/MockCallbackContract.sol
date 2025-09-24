@@ -42,7 +42,7 @@ contract MockCallbackContract is
 
         // For testing purposes, we don't actually transfer tokens
         // In a real implementation, you would handle the token transfers
-        // based on the deltas (positive = owed to pool, negative = owed to you)
+        // based on the deltas (positive = owed to deployer, negative = owed to you)
 
         // Example of what would happen in a real implementation:
         // if (amount0Delta > 0) {

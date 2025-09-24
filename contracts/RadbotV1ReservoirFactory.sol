@@ -15,31 +15,31 @@ contract RadbotV1ReservoirFactory is IRadbotV1ReservoirFactory, NoDelegateCall {
         uint256 epochDuration;
         uint256 maxWithdrawPerEpoch0;
         uint256 maxWithdrawPerEpoch1;
-        uint256 maxWithdrawPerEpochR;
         uint256 upperLimit0;
         uint256 upperLimit1;
-        uint256 upperLimitR;
     }
 
     address public immutable override owner;
 
-    mapping(address => mapping(address => address)) public override reservoir;
+    mapping(address => mapping(address => mapping(address => address)))
+        public
+        override reservoir;
 
     Parameters public override parameters;
 
-    constructor(address factory_) {
-        owner = factory_;
+    constructor(address owner_) {
+        owner = owner_;
     }
 
     function createReservoir(
         address token0,
-        address token1
+        address token1,
+        address deployer
     ) external override noDelegateCall returns (address deployed) {
-        require(msg.sender == owner, "O");
         require(token0 != token1, "TA");
         require(token0 != address(0), "TO");
         require(token1 != address(0), "TO");
-        require(reservoir[token0][token1] == address(0), "RD");
+        require(reservoir[token0][token1][deployer] == address(0), "RD");
 
         parameters = Parameters({
             factory: address(this),
@@ -48,18 +48,18 @@ contract RadbotV1ReservoirFactory is IRadbotV1ReservoirFactory, NoDelegateCall {
             epochDuration: 1 days,
             maxWithdrawPerEpoch0: 2500 * 10 ** 6,
             maxWithdrawPerEpoch1: 2500 * 10 ** 6,
-            maxWithdrawPerEpochR: 5000 * 10 ** 6,
             upperLimit0: 1500,
-            upperLimit1: 1500,
-            upperLimitR: 3000
+            upperLimit1: 1500
         });
 
         deployed = address(
-            new RadbotV1Reservoir{salt: keccak256(abi.encode(token0, token1))}()
+            new RadbotV1Reservoir{
+                salt: keccak256(abi.encode(token0, token1, deployer))
+            }()
         );
 
-        reservoir[token0][token1] = deployed;
-        reservoir[token1][token0] = deployed;
+        reservoir[token0][token1][deployer] = deployed;
+        reservoir[token1][token0][deployer] = deployed;
 
         delete parameters;
     }

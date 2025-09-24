@@ -6,7 +6,7 @@ pragma solidity ^0.8.0;
 /// @dev These functions are derived from the core reservoir state and provide additional utility
 interface IRadbotReservoirDerivedActions {
     /// @notice Get the remaining withdrawal capacity for token0 in the current epoch
-    /// @dev Calculates capacity based on pool balance and upper limits, accounting for already withdrawn amounts
+    /// @dev Calculates capacity based on reservoir balance and upper limits, accounting for already withdrawn amounts
     /// @return remaining The amount of token0 that can still be withdrawn in the current epoch
     function getRemainingEpochCapacityToken0()
         external
@@ -14,7 +14,7 @@ interface IRadbotReservoirDerivedActions {
         returns (uint256 remaining);
 
     /// @notice Get the remaining withdrawal capacity for token1 in the current epoch
-    /// @dev Calculates capacity based on pool balance and upper limits, accounting for already withdrawn amounts
+    /// @dev Calculates capacity based on reservoir balance and upper limits, accounting for already withdrawn amounts
     /// @return remaining The amount of token1 that can still be withdrawn in the current epoch
     function getRemainingEpochCapacityToken1()
         external

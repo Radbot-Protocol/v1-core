@@ -8,7 +8,6 @@ describe("RadbotV1Deployer", function () {
   let factory: any;
   let syntheticFactory: any;
   let reservoirFactory: any;
-  let stringHelper: any;
   let deployer: any;
   let mockCallback: any;
   let reservoir: any;
@@ -21,61 +20,6 @@ describe("RadbotV1Deployer", function () {
   beforeEach(async function () {
     [owner, user1, user2] = await ethers.getSigners();
 
-    // Deploy StringHelper library first
-    const StringHelper = await ethers.getContractFactory("StringHelper");
-    stringHelper = await StringHelper.deploy();
-    await stringHelper.waitForDeployment();
-
-    // Deploy the synthetic factory
-    const SyntheticFactory = await ethers.getContractFactory(
-      "RadbotV1SyntheticFactory",
-      {
-        libraries: {
-          StringHelper: await stringHelper.getAddress(),
-        },
-      }
-    );
-    syntheticFactory = await SyntheticFactory.deploy();
-    await syntheticFactory.waitForDeployment();
-
-    // Create synthetic tokens for testing
-    const tokenAData = {
-      name: stringToBytes32("Token A"),
-      symbol: stringToBytes16("TKA"),
-      decimals: 18,
-    };
-    await syntheticFactory.createSynthetic(tokenAData);
-    const syntheticAAddress = await syntheticFactory.getSynthetic(
-      stringToBytes16("TKA"),
-      18
-    );
-    tokenA = await ethers.getContractAt("RadbotSynthetic", syntheticAAddress);
-
-    const tokenBData = {
-      name: stringToBytes32("Token B"),
-      symbol: stringToBytes16("TKB"),
-      decimals: 18,
-    };
-    await syntheticFactory.createSynthetic(tokenBData);
-    const syntheticBAddress = await syntheticFactory.getSynthetic(
-      stringToBytes16("TKB"),
-      18
-    );
-    tokenB = await ethers.getContractAt("RadbotSynthetic", syntheticBAddress);
-
-    // Deploy the factory
-    const Factory = await ethers.getContractFactory("RadbotV1Factory");
-    factory = await Factory.deploy(await syntheticFactory.getAddress());
-    await factory.waitForDeployment();
-
-    // Get the reservoir factory address from the factory
-    const reservoirFactory = await ethers.getContractAt(
-      "RadbotV1ReservoirFactory",
-      await factory.reservoirFactory()
-    );
-
-    // Reservoir will be created automatically when factory.create() is called
-
     // Deploy mock reserve tokens
     const MockUSDC = await ethers.getContractFactory("MockUSDC");
     const reserveToken0 = await MockUSDC.deploy();
@@ -85,47 +29,87 @@ describe("RadbotV1Deployer", function () {
     const reserveToken1 = await MockUSDT.deploy();
     await reserveToken1.waitForDeployment();
 
-    // // Create a deployer using the factory
-    // const tokenAData = {
-    //   name: stringToBytes32("Token A"),
-    //   symbol: stringToBytes16("TKA"),
-    //   decimals: 18,
-    // };
-    // const tokenBData = {
-    //   name: stringToBytes32("Token B"),
-    //   symbol: stringToBytes16("TKB"),
-    //   decimals: 18,
-    // };
-    await factory.create(
+    // Deploy StringHelper library first
+    const StringHelperFactory = await ethers.getContractFactory("StringHelper");
+    const stringHelper = await StringHelperFactory.deploy();
+    await stringHelper.waitForDeployment();
+
+    // Deploy the factory with library linking (needed for synthetic factory)
+    const Factory = await ethers.getContractFactory("RadbotV1Factory", {
+      libraries: {
+        StringHelper: await stringHelper.getAddress(),
+      },
+    });
+    factory = await Factory.deploy();
+    await factory.waitForDeployment();
+
+    // Get the synthetic factory from the deployed factory
+    syntheticFactory = await ethers.getContractAt(
+      "RadbotV1SyntheticFactory",
+      await factory.syntheticFactory()
+    );
+
+    // Get the reservoir factory from the deployed factory
+    reservoirFactory = await ethers.getContractAt(
+      "RadbotV1ReservoirFactory",
+      await factory.reservoirFactory()
+    );
+
+    // Create a deployer using the factory
+    const tokenAData = {
+      name: stringToBytes32("Token A"),
+      symbol: stringToBytes16("TKA"),
+      decimals: 18,
+    };
+    const tokenBData = {
+      name: stringToBytes32("Token B"),
+      symbol: stringToBytes16("TKB"),
+      decimals: 18,
+    };
+    const tx = await factory.create(
       tokenAData,
       tokenBData,
       3000,
       await reserveToken0.getAddress(),
       await reserveToken1.getAddress()
     );
+    const receipt = await tx.wait();
 
-    // // Get the synthetic token addresses
-    // const syntheticAAddress = await syntheticFactory.getSynthetic(
-    //   stringToBytes16("TKA"),
-    //   18
-    // );
-    // const syntheticBAddress = await syntheticFactory.getSynthetic(
-    //   stringToBytes16("TKB"),
-    //   18
-    // );
-
-    // Get the deployer address using the factory's getDeployer function
-    const deployerAddress = await factory.getDeployer(
-      syntheticAAddress,
-      syntheticBAddress,
-      3000
+    // Get the deployer address from the event
+    const event = receipt?.logs.find(
+      (log: any) =>
+        log.topics[0] ===
+        factory.interface.getEvent("DeployerCreated").topicHash
     );
+    const decodedEvent = factory.interface.parseLog(event!);
+    const deployerAddress = decodedEvent?.args.deployer;
+    const reservoirAddress = decodedEvent?.args.reservoir;
 
     deployer = await ethers.getContractAt("RadbotV1Deployer", deployerAddress);
+    reservoir = await ethers.getContractAt(
+      "RadbotV1Reservoir",
+      reservoirAddress
+    );
 
-    // Initialize the synthetic tokens with the deployer as the minter
-    await tokenA.initialize(deployerAddress, ethers.parseEther("1000000"));
-    await tokenB.initialize(deployerAddress, ethers.parseEther("1000000"));
+    const syntheticAAddress = await syntheticFactory.getSynthetic(
+      stringToBytes16("TKA"),
+      18
+    );
+    const syntheticBAddress = await syntheticFactory.getSynthetic(
+      stringToBytes16("TKB"),
+      18
+    );
+    tokenA = await ethers.getContractAt("RadbotSynthetic", syntheticAAddress);
+    tokenB = await ethers.getContractAt("RadbotSynthetic", syntheticBAddress);
+
+    // Initialize synthetic tokens with the deployer as minter
+    // The owner account (who deployed the factory) is the owner of the synthetic tokens
+    await tokenA
+      .connect(owner)
+      .initialize(deployerAddress, ethers.parseEther("1000000"));
+    await tokenB
+      .connect(owner)
+      .initialize(deployerAddress, ethers.parseEther("1000000"));
 
     // Deploy mock callback contract
     const MockCallbackFactory = await ethers.getContractFactory(
@@ -133,16 +117,6 @@ describe("RadbotV1Deployer", function () {
     );
     mockCallback = await MockCallbackFactory.deploy(deployerAddress);
     await mockCallback.waitForDeployment();
-
-    // Get the reservoir address from the reservoir factory
-    const reservoirAddress = await reservoirFactory.reservoir(
-      await reserveToken0.getAddress(),
-      await reserveToken1.getAddress()
-    );
-    reservoir = await ethers.getContractAt(
-      "RadbotV1Reservoir",
-      reservoirAddress
-    );
   });
 
   describe("Deployment", function () {
