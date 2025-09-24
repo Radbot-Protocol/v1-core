@@ -52,6 +52,7 @@
     "prepare": "husky",
     "deploy:base": "npx hardhat ignition deploy ignition/modules/RadbotV1Factory.ts  --network base",
     "clean": "hardhat clean && rm -rf types/",
-    "compile": "npx hardhat compile"
+    "compile": "npx hardhat compile",
+    "gen:init:hash": "tsx scripts/gen-initcode-hash.ts"
   }
 }
