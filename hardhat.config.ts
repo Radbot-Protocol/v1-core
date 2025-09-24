@@ -34,9 +34,14 @@ const config: HardhatUserConfig = {
       production: {
         version: "0.8.28",
         settings: {
+          viaIR: true,
           optimizer: {
             enabled: true,
-            runs: 800,
+            runs: 100,
+          },
+          evmVersion: "istanbul",
+          metadata: {
+            bytecodeHash: "none",
           },
         },
       },
